@@ -3,7 +3,7 @@ import { MoreHorizontal } from 'lucide-react'
 import type { PageConfig, RowData } from '../types'
 import FilterBar from '../components/FilterBar'
 import DataTable from '../components/DataTable'
-import DrawerDetail from '../components/DrawerDetail'
+import BusinessDetailDrawer from '../components/BusinessDetailDrawer'
 import EditModal from '../components/EditModal'
 import ConfirmDialog from '../components/ConfirmDialog'
 
@@ -43,7 +43,7 @@ export default function GenericPage({config,onNavigate,onToast}:{config:PageConf
     <FilterBar keyword={keyword} onKeyword={setKeyword} filter={filter} onFilter={setFilter} options={filterCfg.options} filterLabel={filterCfg.label} status={status} onStatus={setStatus} date={date} onDate={setDate}
       onReset={()=>{setKeyword('');setFilter('全部');setStatus('全部');setDate('')}} onAdd={()=>setEditing(null)} addText={config.primaryAction??'新增记录'} onExport={()=>onToast(`已导出 ${shown.length} 条数据`)}/>
     <DataTable columns={config.columns} rows={shown} actions={config.actions??['查看','编辑','删除']} selected={selected} onSelected={setSelected} onAction={action}/>
-    <DrawerDetail row={detail} pageKey={config.key} detailTabs={config.detailTabs} title={config.title} onClose={()=>setDetail(null)} onNavigate={k=>{setDetail(null);onNavigate(k)}}/>
+    <BusinessDetailDrawer row={detail} pageKey={config.key} onClose={()=>setDetail(null)} onNavigate={k=>{setDetail(null);onNavigate(k)}} onToast={onToast}/>
     <EditModal open={editing!==undefined} title={`${editing?'编辑':'新增'}${config.title.replace('管理','')}`} fields={editing?(config.editFields??config.fields):(config.createFields??config.fields)} initial={editing} onClose={()=>setEditing(undefined)} onSave={save}/>
     <ConfirmDialog open={!!deleteRow} name={String(deleteRow?.name??'')} onClose={()=>setDeleteRow(null)} onConfirm={()=>{setRows(x=>x.filter(r=>r.id!==deleteRow?.id));setDeleteRow(null);onToast('记录已删除')}}/>
   </>
