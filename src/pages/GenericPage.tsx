@@ -52,7 +52,7 @@ export default function GenericPage({config,onNavigate,onToast}:{config:PageConf
       if(a==='查看关联诊断'){onNavigate('diagnoses');return}
     }
     if(config.key==='diagnoses'){
-      if(a==='查看来源单据'){onNavigate(String(row.sourceId).startsWith('RP')?'reports':'records');return}
+      if(a==='查看来源单据'){const id=String(row.sourceId);onNavigate(id.startsWith('RP')?'reports':id.startsWith('AI')?'consults':'records');return}
       if(a==='查看健康档案'){onNavigate('health');return}
     }
     if(config.key==='health'){
@@ -67,6 +67,22 @@ export default function GenericPage({config,onNavigate,onToast}:{config:PageConf
       if(a==='重新OCR'){onToast(`病历 ${row.id} 已提交 OCR 重识别，操作已写入审计日志`);return}
       if(a==='同步AI'){onToast(`病历 ${row.id} 已提交 AI 索引同步，操作已写入审计日志`);return}
       if(a==='人工审核'){onToast(`病历 ${row.id} 已进入医学运营复核队列`);return}
+    }
+    if(config.key==='reports'){
+      if(a==='纠错记录'){onNavigate('corrections');return}
+      if(a==='删除/迁移申请'){onNavigate('requests');return}
+      const tabMap:Record<string,string>={'查看原图':'报告原图 / OCR文本','查看结构化':'结构化字段','医学复核':'医学复核'}
+      if(tabMap[a]){setDetailTab(tabMap[a]);setDetail(row);return}
+      if(a==='生成解读'){onNavigate('interpretation');return}
+      if(a==='入档记录'){onNavigate('archive');return}
+    }
+    if(config.key==='agents'){
+      if(a==='查看'){setDetailTab('基础配置');setDetail(row);return}
+      if(a==='版本记录'){setDetailTab('上线审核 / 版本记录');setDetail(row);return}
+      if(a==='提交审核'){setRows(xs=>xs.map(x=>x.id===row.id?{...x,reviewStatus:'待医学审核',status:'待医学审核',updatedAt:'2026-07-09 现在'}:x));onToast('已提交医学审核，操作已写入审计日志');return}
+      if(a==='灰度发布'){setRows(xs=>xs.map(x=>x.id===row.id?{...x,publishStatus:'灰度上线',status:'灰度上线',updatedAt:'2026-07-09 现在'}:x));onToast('已进入灰度发布，支持回滚到上一稳定版本');return}
+      if(a==='下线'){setRows(xs=>xs.map(x=>x.id===row.id?{...x,publishStatus:'已下线',status:'已下线',updatedAt:'2026-07-09 现在'}:x));onToast('智能体已下线，历史调用和审计记录继续保留');return}
+      if(a==='归档'){onToast('已创建归档申请；产生过调用记录的智能体不会被硬删除');return}
     }
     if(/查看|关联|原图|预览|说明书/.test(a)){setDetailTab(undefined);setDetail(row);return}
     if(a.includes('编辑')){setEditing(row);return}

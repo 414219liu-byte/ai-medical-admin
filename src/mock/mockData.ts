@@ -3,10 +3,13 @@ import { createRecordFor, formSchemas } from './formSchemas'
 import { userProfiles } from './userData'
 import { familyMembers } from './familyData'
 import { healthArchives } from './healthData'
-import { aiClinicSessions, diagnosisRecords, symptomRecords } from './aiClinicData'
+import { aiClinicSessions } from './aiClinicData'
 import { reportInterpretationTasks } from './reportInterpretationData'
 import { cameraTasks } from './cameraData'
 import { medicalRecords } from './medicalRecordData'
+import { checkReports } from './checkReportData'
+import { diagnosisManagementRecords, symptomManagementRecords } from './clinicalRecordData'
+import { doctorAgents } from './doctorAgentData'
 
 const people = ['刘志辉', '陈雨桐', '周铭轩', '林婉清', '吴嘉诚', '赵欣怡', '孙建国', '高晓雯', '叶子航', '许安然']
 const hospitals = ['华中科技大学协和深圳医院', '北京大学深圳医院', '南方医科大学深圳医院', '深圳市第三人民医院']
@@ -77,15 +80,13 @@ export const specialConfigs: Record<string, PageConfig> = {
     actions:['查看','编辑','重新OCR','同步AI','人工审核','删除/迁移申请']
   },
   reports: {
-    key:'reports',title:'检查报告管理',group:'医疗数据',description:'报告上传、OCR 结构化、风险识别与 AI 解读全流程',
-    primaryAction:'上传报告', columns:[col('id','报告ID'),col('user','用户'),col('subject','档案主体'),col('name','报告名称'),col('reportType','报告类型'),col('hospital','医院'),
-      col('reportDate','报告日期'),col('ocr','OCR状态',true),col('structured','结构化',true),col('ai','AI解读',true),col('abnormal','异常摘要'),col('risk','风险',true)],
-    fields:[field('user','用户','select',people),field('subject','档案主体'),field('name','报告名称'),field('reportType','报告类型','select',['检验报告','检查报告','影像报告','眼科检查','屈光检查','胃镜报告','体检报告']),
-      field('hospital','医院','select',hospitals),field('reportDate','报告日期','date'),field('attachment','报告文件','file'),field('items','检查项目','textarea'),field('conclusion','医生结论','textarea')],
-    rows:generate('RP',['泪液分泌功能测定报告','屈光检查报告','消化门诊记录','幽门螺杆菌检测'],i=>({
-      subject:i===3?'测试父亲':people[i%10],reportType:['眼科检查','屈光检查','门诊记录','检验报告'][i%4],hospital:hospitals[i%4],reportDate:dates[i%5].slice(0,10),
-      ocr:'已完成',structured:i===1?'待复核':'已完成',ai:i===0?'已解读':'待生成',abnormal:['BUT OD 2s / OS 1s','DC 字段疑似占位','慢性胃炎、胆汁反流','未见异常'][i%4],risk:i===2?'中风险':'普通'
-    })),filters:[{key:'reportType',label:'报告类型',options:['全部','检验报告','眼科检查','屈光检查','胃镜报告']}],actions:['查看原图','编辑','OCR识别','生成解读','人工复核','删除']
+    key:'reports',title:'检查报告管理',group:'医疗数据',description:'管理报告原件、OCR文本、结构化字段、报告归属、医学复核与健康档案入档',
+    primaryAction:'上传/导入报告',columns:[col('id','报告ID'),col('userId','用户ID'),col('userName','用户姓名'),col('subjectId','健康主体ID'),col('subjectName','主体姓名'),col('relation','成员关系'),col('archiveId','健康档案ID'),
+      col('name','报告名称'),col('reportType','报告类型'),col('hospital','医院'),col('department','科室'),col('examDate','检查日期'),col('source','报告来源'),col('uploadMethod','上传方式'),
+      col('ocrStatus','OCR状态',true),col('structuredStatus','结构化状态',true),col('aiStatus','AI解读状态',true),col('reviewStatus','医学复核状态',true),col('archiveStatus','入档状态',true),col('abnormal','异常摘要'),col('riskLevel','风险等级',true),col('updatedAt','最近更新时间')],
+    fields:formSchemas.reports,createFields:formSchemas.reports,editFields:formSchemas.reports,rows:checkReports,
+    filters:[{key:'source',label:'报告来源',options:['全部','用户上传','拍照上传','相册上传','文件上传','医院同步','在线查报告','体检机构接口','后台补录','旧系统迁移']},{key:'reportType',label:'报告类型',options:['全部','眼科检查','内镜检查','检验报告','影像报告','功能检查','皮肤检查','体检报告']},{key:'ocrStatus',label:'OCR状态',options:['全部','不适用','待识别','识别中','已完成','识别失败','人工修正']},{key:'reviewStatus',label:'医学复核状态',options:['全部','不需要复核','待复核','复核中','复核通过','复核驳回']},{key:'archiveStatus',label:'入档状态',options:['全部','未入档','待入档','已入档','入档失败','入档冲突待确认']}],
+    actions:['查看原图','查看结构化','生成解读','医学复核','入档记录','纠错记录','删除/迁移申请']
   },
   consults: {
     key:'consults',title:'AI 问诊管理',group:'AI 服务',description:'AI 问诊会话、急症命中、入档及服务转化管理',
@@ -236,19 +237,28 @@ pageConfigs.consults={
   actions:['查看详情','查看症状记录','查看诊断记录','查看入档记录']
 }
 pageConfigs.symptoms={
-  ...pageConfigs.symptoms,columns:[col('id','症状记录ID'),col('userId','用户ID'),col('subjectId','健康主体ID'),col('subjectName','主体姓名'),col('sourceType','来源类型'),
-    col('sourceSessionId','来源会话ID'),col('chiefComplaint','主诉'),col('name','症状名称'),col('bodyPart','症状部位'),col('nature','症状性质'),col('duration','持续时间'),
+  ...pageConfigs.symptoms,primaryAction:'新增/补录症状',columns:[col('id','症状记录ID'),col('userId','用户ID'),col('userName','用户姓名'),col('subjectId','健康主体ID'),col('subjectName','主体姓名'),col('relation','成员关系'),col('sourceType','来源类型'),
+    col('sourceSessionId','来源会话ID'),col('chiefComplaint','主诉'),col('symptomName','症状名称'),col('bodyPart','症状部位'),col('nature','症状性质'),col('duration','持续时间'),
     col('severity','严重程度',true),col('companions','伴随症状'),col('redFlag','红旗症状',true),col('completeness','信息完整度'),col('diagnosisId','关联诊断ID'),
-    col('archiveStatus','是否入档',true),col('updatedAt','更新时间')],
-  rows:symptomRecords,filters:[{key:'sourceType',label:'来源类型',options:['全部','AI诊室','用户手动记录','医生病历提取','报告解读提取','后台管理员录入']},{key:'redFlag',label:'红旗症状',options:['全部','是','否','待排查']}],
+    col('archived','是否入档',true),col('archiveStatus','入档状态',true),col('updatedAt','最近更新时间')],
+  rows:symptomManagementRecords,filters:[{key:'sourceType',label:'来源类型',options:['全部','AI诊室','用户手动记录','医生病历提取','报告解读提取','AI拍肤/图像问诊','后台补录']},{key:'redFlag',label:'红旗症状',options:['全部','是','否','待排查']},{key:'archiveStatus',label:'入档状态',options:['全部','未入档','待入档','已入档','待人工复核','待确认']}],
   actions:['查看详情','编辑','查看来源会话','查看关联诊断']
 }
 pageConfigs.diagnoses={
-  ...pageConfigs.diagnoses,columns:[col('id','诊断ID'),col('userId','用户ID'),col('subjectId','健康主体ID'),col('subjectName','主体姓名'),col('name','诊断名称'),
-    col('source','诊断来源'),col('sourceId','来源单据ID'),col('department','关联科室'),col('confirmStatus','确认状态',true),col('currentStatus','当前状态',true),
+  ...pageConfigs.diagnoses,primaryAction:'新增/补录诊断',columns:[col('id','诊断ID'),col('userId','用户ID'),col('userName','用户姓名'),col('subjectId','健康主体ID'),col('subjectName','主体姓名'),col('relation','成员关系'),col('archiveId','健康档案ID'),col('diagnosisName','诊断名称'),col('diagnosisConclusion','判断结论'),
+    col('source','诊断来源'),col('sourceId','来源单据ID'),col('department','关联科室'),col('confirmationStatus','确认状态',true),col('currentStatus','当前状态',true),
     col('riskLevel','风险等级',true),col('doctor','确认医生'),col('aiContext','AI上下文',true),col('archiveStatus','是否入档',true),col('updatedAt','更新时间')],
-  rows:diagnosisRecords,filters:[{key:'source',label:'诊断来源',options:['全部','医生诊断','病历提取','报告提取','AI初筛','用户自填']},{key:'confirmStatus',label:'确认状态',options:['全部','医生确认','AI初筛','待医生确认','用户确认','已排除']},{key:'currentStatus',label:'当前状态',options:['全部','现患','已缓解','待复查','已排除','长期管理']}],
+  rows:diagnosisManagementRecords,filters:[{key:'source',label:'诊断来源',options:['全部','医生诊断','病历提取','报告提取','AI初筛','用户自填','后台补录']},{key:'confirmationStatus',label:'确认状态',options:['全部','医生确认','AI初筛','待医生确认','用户确认','已排除']},{key:'currentStatus',label:'当前状态',options:['全部','现患','已缓解','待复查','已排除','长期管理']}],
   actions:['查看详情','编辑','查看来源单据','查看健康档案']
+}
+pageConfigs.agents={
+  ...pageConfigs.agents,
+  description:'管理医生/科室级 AI 分身的专科边界、知识库引用、工具权限、测试评测、上线审核与运行反馈',
+  primaryAction:'新增医生智能体',
+  columns:[col('id','智能体ID'),col('name','智能体名称'),col('agentType','智能体类型'),col('doctor','绑定医生'),col('authStatus','医生授权状态',true),col('hospital','医院'),col('department','科室'),col('modelVersion','模型版本'),col('promptVersion','Prompt版本'),col('kbVersion','知识库版本'),col('reviewStatus','审核状态',true),col('publishStatus','发布状态',true),col('calls','调用次数'),col('riskBlocks','高风险拦截次数'),col('handoffs','转人工次数'),col('rating','用户评分'),col('testResult','最近测试结果',true),col('updatedAt','更新时间')],
+  fields:formSchemas.agents,createFields:formSchemas.agents,editFields:formSchemas.agents,rows:doctorAgents,
+  filters:[{key:'agentType',label:'智能体类型',options:['全部','医生AI分身','科室AI助手','专病管理助手','复诊随访助手','导诊辅助助手']},{key:'authStatus',label:'医生授权状态',options:['全部','已授权','授权待确认','授权已过期','未授权','不适用']},{key:'reviewStatus',label:'审核状态',options:['全部','草稿','待医学审核','待合规审核','审核通过','审核驳回','待重新测试']},{key:'publishStatus',label:'发布状态',options:['全部','未上线','测试中','灰度上线','正式上线','已下线','已冻结']}],
+  actions:['查看','编辑','提交审核','灰度发布','下线','版本记录','归档']
 }
 pageConfigs.doctors.actions = ['查看详情','编辑','查看号源','查看智能体','删除']
 pageConfigs['drug-kb'].actions = ['查看说明书','编辑','查看药箱','用药计划','删除']

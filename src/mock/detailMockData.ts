@@ -13,6 +13,9 @@ import { aiClinicSessions } from './aiClinicData'
 import { reportInterpretationTasks } from './reportInterpretationData'
 import { cameraTasks } from './cameraData'
 import { medicalRecords } from './medicalRecordData'
+import { checkReports } from './checkReportData'
+import { diagnosisManagementRecords, symptomManagementRecords } from './clinicalRecordData'
+import { doctorAgents } from './doctorAgentData'
 
 export interface BusinessDetail {
   id:string
@@ -137,6 +140,58 @@ const reportDetail:BusinessDetail={id:'RP10021',name:'泪液分泌功能测定�
   '关联问诊':[table(['关联ID','类型','主题','状态'],[['AI10021','AI问诊','干眼复诊摘要','已完成'],['AI10031','AI问诊','报告结构化测试','待复核'],['FB10021','用户反馈','OU误读反馈','已修正']])],
   '操作日志':[logs('检查报告')]
 }}
+
+const checkReportDetailData:Record<string,BusinessDetail>=Object.fromEntries(checkReports.map((r,index)=>{
+  const tear=r.id==='RP10021'
+  const refraction=r.id==='RP10022'
+  const ocrText=tear?'泪膜破裂时间：BUT OD:2s，OS:1s。Schirmer I：OD:10mm/5min，OS:7mm/5min。角膜荧光素染色检查：OU。':refraction?'小瞳验光：OD：-0.50DS，OS：-0.50DS，矫正视力：1.0。DC字段位于模板列，疑似占位。':`${r.name}：${r.abnormal}。`
+  const structureRows:(string|number)[][]=tear?[
+    ['Schirmer OD','OD:10mm/5min','10','mm/5min','通常 ≥10mm/5min','轻度偏低/边界','原文提取','规则引擎','否','98%','已入档','眼科检查.SchirmerOD','复核通过','查看原文'],
+    ['Schirmer OS','OS:7mm/5min','7','mm/5min','通常 ≥10mm/5min','偏低','原文提取','规则引擎','否','98%','已入档','眼科检查.SchirmerOS','复核通过','查看原文'],
+    ['BUT OD','OD:2s','2','秒','通常 >10秒','明显缩短','原文提取','规则引擎','否','99%','已入档','眼科检查.BUT_OD','复核通过','查看原文'],
+    ['BUT OS','OS:1s','1','秒','通常 >10秒','明显缩短','原文提取','规则引擎','否','99%','已入档','眼科检查.BUT_OS','复核通过','查看原文'],
+    ['角膜荧光素染色','OU','双眼','无','无','报告未明确','原文提取','医学复核','否','100%','已入档','眼科检查.染色范围','复核通过','查看纠错']
+  ]:[
+    ['核心检查结论',String(r.abnormal),String(r.abnormal),'—','结合报告类型','待结合临床','原文提取','规则引擎','否',`${92-index}%`,String(r.archiveStatus),'报告.核心结论',String(r.reviewStatus),'查看原文']
+  ]
+  const tabs:Record<string,DetailBlock[]>={
+    '报告概览':[info([['报告ID',String(r.id)],['用户ID',String(r.userId)],['用户姓名',String(r.userName)],['健康主体ID',String(r.subjectId)],['主体姓名',String(r.subjectName)],['成员关系',String(r.relation)],['健康档案ID',String(r.archiveId)],['报告名称',String(r.name)],['报告类型',String(r.reportType)],['医院',String(r.hospital)],['科室',String(r.department)],['检查日期',String(r.examDate)],['报告来源',String(r.source)],['上传方式',String(r.uploadMethod)],['OCR状态',String(r.ocrStatus)],['结构化状态',String(r.structuredStatus)],['AI解读状态',String(r.aiStatus)],['医学复核状态',String(r.reviewStatus)],['入档状态',String(r.archiveStatus)],['异常摘要',String(r.abnormal)],['是否高风险',['高风险','紧急风险'].includes(String(r.riskLevel))?'是':'否'],['最近更新时间',String(r.updatedAt)]],'报告归属、来源与处理状态')],
+    '报告原图 / OCR文本':[
+      info([['文件名称',String(r.fileName)],['文件格式',String(r.fileFormat)],['文件大小',String(r.fileSize)],['上传来源',`${r.source} / ${r.uploadMethod}`],['上传时间',String(r.updatedAt)],['隐私脱敏','已脱敏'],['OCR引擎',String(r.ocrStatus)==='不适用'?'不适用':'Medical OCR V3'],['OCR置信度',String(r.ocrStatus)==='不适用'?'不适用':tear?'96%':`${90-index}%`],['人工修正记录',String(r.ocrStatus)==='人工修正'?'已修正字段边界和医院名称':'无']],'原始文件与OCR任务'),
+      {type:'text',title:'报告预览区域',content:`[${r.fileFormat} 预览] ${r.fileName}。当前原件采用加密对象存储，访问动作进入审计日志。`},
+      {type:'text',title:'OCR识别文本',content:ocrText},
+      ...(tear?[{type:'alert',tone:'warning',title:'原文语义约束',content:'OU 只表示双眼。原报告未标注阳性或阴性，任何 AI 输出均不得推断为“双眼阳性”。'} as DetailBlock]:[])
+    ],
+    '结构化字段':[
+      table(['字段名称','原文内容','结构化值','单位','参考范围','异常判断','数值来源','异常判断来源','AI推断','置信度','是否入档','入档目标字段','复核状态','操作'],structureRows),
+      ...(tear?[{type:'alert',tone:'danger',title:'OU字段纠错约束',content:'OU 不得解释为阳性或阴性。历史“双眼阳性”输出已生成纠错记录 COR10021，并同步规则库。'} as DetailBlock]:[])
+    ],
+    'AI解读':[
+      info([['解读任务ID',`INT-${String(r.id).slice(2)}`],['AI解读状态',String(r.aiStatus)],['解读摘要',tear?'泪膜稳定性明显下降，左眼泪液分泌偏低':String(r.abnormal)],['异常指标解释',String(r.abnormal)],['风险提示',String(r.riskLevel)],['建议复查项目',tear?'泪膜破裂时间、睑板腺功能评估':'结合临床复查'],['建议科室',String(r.department)],['建议线下就医',String(r.riskLevel)==='无明显异常'?'否':'视症状变化'],['引用健康档案','按授权范围读取'],['引用历史病历',tear?'MR10021 眼科门诊病历':'按关联关系读取'],['免责声明','AI解读仅供健康参考，不能替代医生诊断'],['关联报告解读任务',`INT-${String(r.id).slice(2)}`]],'解读摘要与任务关联'),
+      {type:'alert',tone:'info',title:'模块边界',content:'本页保存报告原件和解读摘要；完整风险评估、健康建议、用户反馈及模型质检请前往“报告解读管理”。'}
+    ],
+    '医学复核':[
+      info([['复核状态',String(r.reviewStatus)],['复核医生',tear?'李医生':'医学审核员'],['复核时间',String(r.updatedAt)],['复核前字段',tear?'角膜荧光素染色 = 双眼阳性':'无修改'],['复核后字段',tear?'角膜荧光素染色 = OU；异常状态 = 报告未明确':'保持原结构化字段'],['修改原因',tear?'OU 仅表示双眼，不代表阳性或阴性':'无'],['复核意见',tear?'删除 OU 阳性推断，保留原文字段。':'结构化结果与原件一致'],['同步规则库',tear?'是':'否'],['生成纠错记录',tear?'是，COR10021':'否'],['允许入档',String(r.reviewStatus)==='复核驳回'?'否':'是'],['AI调用记录',`INT-${String(r.id).slice(2)} / ${r.aiStatus}`]],'医学复核与纠错闭环')
+    ],
+    '关联问诊':[table(['关联ID','关联类型','主题','状态','触发原因','读取本报告','引用字段','产生反馈','操作'],tear?[
+      ['AI10021','AI问诊','干眼复诊摘要','已完成','生成复诊建议','是','BUT OD/OS、Schirmer OS','否','查看问诊'],
+      ['AI10031','AI问诊','报告结构化测试','待复核','验证字段准确性','是','全部结构化字段','是','查看问诊'],
+      ['FB10021','用户反馈','OU误读反馈','已修正','用户指出医学误读','是','角膜荧光素染色 OU','是','查看反馈']
+    ]:[[`AI${10030+index}`,'AI问诊',`${r.name}继续追问`,'已完成','用户基于报告继续提问','是','核心检查结论','否','查看问诊']])],
+    '操作日志':[{type:'timeline',items:[
+      {time:String(r.examDate),actor:'用户/数据接口',title:'获取报告原件',content:`${r.source} · ${r.uploadMethod} · 操作对象 ${r.id} · 权限校验通过`},
+      {time:String(r.updatedAt),actor:'OCR服务',title:'OCR识别完成',content:`状态：${r.ocrStatus} · 来源端：系统服务 · 审计通过`},
+      {time:String(r.updatedAt),actor:'结构化引擎',title:'结构化字段提取完成',content:`状态：${r.structuredStatus} · 操作对象 ${r.id}`},
+      {time:String(r.updatedAt),actor:'AI解读服务',title:'AI解读完成',content:`状态：${r.aiStatus} · 任务 INT-${String(r.id).slice(2)}`},
+      {time:String(r.updatedAt),actor:'医学审核员',title:'医学复核完成',content:`状态：${r.reviewStatus} · Web管理端 · IP 10.24.16.8`},
+      ...(tear?[{time:String(r.updatedAt),actor:'纠错服务',title:'生成纠错记录',content:'COR10021 · 修正 OU 过度推断 · 审计通过'}]:[]),
+      {time:String(r.updatedAt),actor:'健康档案服务',title:'执行报告入档',content:`目标 ${r.archiveId} · 状态 ${r.archiveStatus}`},
+      {time:String(r.updatedAt),actor:'AI问诊服务',title:'建立问诊关联',content:`报告 ${r.id} 可按授权范围被引用`},
+      {time:'2026-07-09 10:46',actor:'医学运营管理员',title:'查看报告详情',content:`Web管理端 · IP 10.24.16.8 · 操作对象 ${r.id} · 审计通过`}
+    ]}]
+  }
+  return [String(r.id),{...r,name:String(r.name),status:String(r.reviewStatus),tabs} as BusinessDetail]
+}))
 
 const consultDetail:BusinessDetail={id:'AI10022',name:'胸痛急症风险问诊',status:'急诊风险 / 已完成',user:'刘志辉',subject:'本人',risk:'急诊',tabs:{
   '会话概览':[info([['会话ID','AI10022'],['用户','刘志辉'],['咨询主体','本人'],['问诊主题','胸痛急症风险问诊'],['首次问题','胸口闷痛、出冷汗、左胳膊酸，能否先吃胃药观察'],['意图分类','症状问诊 / 产品测试'],['风险等级','急诊'],['是否急症','是'],['命中规则','RULE-EMG-CHEST-001'],['AI模型','MedGPT-4.1'],['处理状态','已完成'],['创建时间','2026-07-09 09:16']]),{type:'alert',tone:'danger',title:'急症风险',content:'胸痛 + 冷汗 + 左臂放射痛，高度警惕急性冠脉综合征，应立即拨打 120。'}],
@@ -493,6 +548,125 @@ const reportTaskDetailData:Record<string,BusinessDetail>=Object.fromEntries(repo
   return [String(r.id),{...r,tabs:blocks} as BusinessDetail]
 }))
 
+const diagnosisDetailData:Record<string,BusinessDetail>=Object.fromEntries(diagnosisManagementRecords.map(d=>{
+  const hasRecord=String(d.sourceId).startsWith('MR')
+  const hasReport=String(d.sourceId).startsWith('RP')
+  const aiScreen=d.source==='AI初筛'
+  const tabs:Record<string,DetailBlock[]>={
+    '诊断概览':[info([['诊断ID',String(d.id)],['用户ID',String(d.userId)],['用户姓名',String(d.userName)],['健康主体ID',String(d.subjectId)],['主体姓名',String(d.subjectName)],['成员关系',String(d.relation)],['健康档案ID',String(d.archiveId)],['诊断名称',String(d.diagnosisName)],['判断结论',String(d.diagnosisConclusion)],['诊断来源',String(d.source)],['来源单据ID',String(d.sourceId)],['关联科室',String(d.department)],['确认状态',String(d.confirmationStatus)],['当前状态',String(d.currentStatus)],['风险等级',String(d.riskLevel)],['确认医生',String(d.doctor)],['首次记录时间',String(d.firstRecordedAt)],['最近更新时间',String(d.updatedAt)],['纳入AI上下文',String(d.aiContext)],['是否入档',String(d.archiveStatus)]],'诊断归属、结论与确认边界'),...(aiScreen?[{type:'alert',tone:'warning',title:'AI初筛不是医生诊断',content:'当前疾病判断只能保持“AI初筛 / 待医生确认”。未经医生复核不得标记为医生确认或作为正式诊断对外展示。'} as DetailBlock]:[])],
+    '来源病历':hasRecord?[table(['来源病历ID','病历名称','医院','科室','就诊时间','医生诊断','结构化状态','医学复核状态','入档状态','操作'],[[
+      String(d.sourceId),`${d.department}门诊病历`,String(d.hospital??'深圳市宝安区人民医院'),String(d.department),String(d.visitDate??d.firstRecordedAt),String(d.diagnosisName),'已结构化','已通过','已入档','查看病历'
+    ]])]:[{type:'alert',tone:'info',title:'暂无来源病历',content:`当前诊断来源为 ${d.source}，来源单据 ${d.sourceId}，未直接关联医生病历。`}],
+    '关联报告':hasReport?[table(['报告ID','报告名称','报告类型','医院','科室','检查日期','异常摘要','AI解读状态','医学复核状态','入档状态','操作'],[[
+      String(d.sourceId),`${d.diagnosisName}相关检查报告`,'检验报告','华中科技大学协和深圳医院',String(d.department),String(d.firstRecordedAt).slice(0,10),String(d.diagnosisConclusion),'已解读','复核通过','已入档','查看报告'
+    ]])]:[table(['报告ID','报告名称','报告类型','医院','科室','检查日期','异常摘要','AI解读状态','医学复核状态','入档状态','操作'],String(d.subjectId)==='HS10021'?[
+      ['RP10021','泪液分泌功能测定报告','眼科检查','深圳市宝安区人民医院','眼科','2026-06-27','BUT明显缩短','已解读','复核通过','已入档','查看报告']
+    ]:[])],
+    '状态变更':[{type:'timeline',items:[
+      {time:String(d.firstRecordedAt),actor:aiScreen?'AI诊室服务':String(d.source),title:`生成诊断记录：${d.diagnosisName} / ${d.diagnosisConclusion}`,content:`变更前：无 · 变更后：${d.confirmationStatus} · 关联证据：${d.sourceId} · AI上下文：${d.aiContext}`},
+      ...(String(d.confirmationStatus)==='医生确认'?[{time:String(d.updatedAt),actor:String(d.doctor),title:'医生复核后确认',content:`变更前：待医生确认 · 变更后：医生确认 · 同步健康档案：是 · 影响AI上下文：纳入`}]:[]),
+      {time:String(d.updatedAt),actor:'健康档案服务',title:'同步诊断状态',content:`当前状态：${d.currentStatus} · 入档状态：${d.archiveStatus} · 目标：${d.archiveId}`}
+    ]}],
+    '操作日志':[{type:'timeline',items:[
+      {time:String(d.firstRecordedAt),actor:aiScreen?'AI结论服务':String(d.source),title:aiScreen?'AI生成诊断候选':'创建诊断记录',content:`来源端：${d.source} · 操作对象：${d.id} · 审计通过`},
+      {time:String(d.updatedAt),actor:String(d.doctor),title:String(d.confirmationStatus)==='已排除'?'医生排除诊断':'确认状态更新',content:`确认状态：${d.confirmationStatus} · 操作角色：医学服务`},
+      {time:String(d.updatedAt),actor:'关联服务',title:'关联病历与检查报告',content:`来源证据：${d.sourceId} · 权限校验通过`},
+      {time:String(d.updatedAt),actor:'AI上下文服务',title:'更新AI上下文',content:`状态：${d.aiContext} · 操作对象：${d.id}`},
+      {time:String(d.updatedAt),actor:'健康档案服务',title:'写入健康档案',content:`目标：${d.archiveId} · 状态：${d.archiveStatus}`},
+      {time:'2026-07-09 16:50',actor:'医学运营管理员',title:'查看诊断详情',content:`Web管理端 · IP 10.24.16.8 · 审计结果：通过`}
+    ]}]
+  }
+  return [String(d.id),{...d,name:String(d.diagnosisName),status:String(d.confirmationStatus),tabs} as BusinessDetail]
+}))
+
+const symptomDetailData:Record<string,BusinessDetail>=Object.fromEntries(symptomManagementRecords.map(s=>{
+  const emergency=s.redFlag==='是'
+  const gastric=s.id==='SYM-10031'
+  const tabs:Record<string,DetailBlock[]>={
+    '症状概览':[info([['症状记录ID',String(s.id)],['用户ID',String(s.userId)],['用户姓名',String(s.userName)],['健康主体ID',String(s.subjectId)],['主体姓名',String(s.subjectName)],['成员关系',String(s.relation)],['来源类型',String(s.sourceType)],['来源会话ID',String(s.sourceSessionId)],['主诉',String(s.chiefComplaint)],['症状名称',String(s.symptomName)],['症状部位',String(s.bodyPart)],['症状性质',String(s.nature)],['起病时间',String(s.onsetTime)],['持续时间',String(s.duration)],['诱因',String(s.trigger)],['加重因素',String(s.aggravating)],['缓解因素',String(s.relieving)],['伴随症状',String(s.companions)],['严重程度',String(s.severity)],['红旗症状',String(s.redFlag)],['信息完整度',String(s.completeness)],['关联诊断ID',String(s.diagnosisId)],['入档状态',String(s.archiveStatus)],['最近更新时间',String(s.updatedAt)]],'症状采集与结构化结果')],
+    '来源对话':[{type:'timeline',items:gastric?[
+      {time:'15:02:01',actor:'用户',title:'第1轮 · 用户输入',content:'胃不舒服 · 提取：主诉 · 完整度10% · 未触发红旗排查'},
+      {time:'15:02:04',actor:'AI',title:'第2轮 · AI追问',content:'能具体描述一下吗？比如胃部隐痛、胀气、烧心、反酸？ · 完整度20%'},
+      {time:'15:03:12',actor:'用户',title:'第3轮 · 用户回答',content:'烧心 · 提取：症状名称=烧心、性质=烧灼感 · 完整度30%'},
+      {time:'15:03:15',actor:'AI',title:'第4轮 · AI追问',content:'这种烧心从什么时候开始？是否饭后加重？有没有反酸？ · 触发消化道红旗排查'},
+      {time:'15:04:02',actor:'用户',title:'第5轮 · 用户回答',content:'最近两年，饭后会反酸、饭后胀 · 完整度40% · 红旗症状待排查'}
+    ]:[
+      {time:String(s.updatedAt),actor:'用户',title:'第1轮 · 提交主诉',content:`${s.chiefComplaint} · 提取：${s.symptomName}`},
+      {time:String(s.updatedAt),actor:'AI问诊服务',title:'症状结构化',content:`部位：${s.bodyPart}；性质：${s.nature}；伴随：${s.companions}；完整度：${s.completeness}`},
+      {time:String(s.updatedAt),actor:'风险规则引擎',title:'红旗排查',content:`状态：${s.redFlag}；规则：${s.rule}`}
+    ]}],
+    '入档记录':[info([['是否入档',String(s.archived)],['目标健康档案ID',String(s.archiveId)],['目标健康主体ID',String(s.subjectId)],['入档字段','主诉、症状名称、部位、性质、持续时间、伴随症状、风险状态'],['入档时间',String(s.archiveStatus)==='已入档'?String(s.updatedAt):'—'],['入档操作人','症状记录服务'],['需要用户确认',['待确认','待入档'].includes(String(s.archiveStatus))?'是':'否'],['存在冲突',String(s.archiveStatus)==='待人工复核'?'待核查':'否'],['冲突处理状态',String(s.archiveStatus)]],'症状入档目标与状态')],
+    '风险研判':[
+      info([['风险等级',String(s.riskLevel)],['红旗症状',String(s.redFlag)],['命中规则ID',emergency?'SYM_RED_001':`SYM_RULE_${String(s.id).slice(-3)}`],['命中规则名称',String(s.rule)],['命中条件',`${s.symptomName} + ${s.companions}`],['处理建议',emergency?'建议立即线下急诊，不继续普通问诊':'根据症状完整度继续追问或门诊评估'],['建议急诊',emergency?'是':'否'],['建议线下就医',s.riskLevel==='低风险'?'视症状变化':'是'],['推荐科室',s.symptomName==='胸痛'?'急诊科':s.bodyPart==='双眼'?'眼科':'全科/相关专科'],['需要继续追问',String(s.redFlag)==='待排查'?'是':'否'],['风险说明',emergency?'胸痛伴出汗、气短属于急症红旗组合':'当前风险基于已采集信息，信息不完整时需动态更新']],'症状风险规则判定'),
+      ...(emergency?[{type:'alert',tone:'danger',title:'红旗症状已触发',content:'系统应停止普通问诊流程，优先输出急诊建议并进入人工联系与审计链路。'} as DetailBlock]:[])
+    ],
+    '操作日志':[{type:'timeline',items:[
+      {time:String(s.updatedAt),actor:'用户端',title:'用户提交症状',content:`来源端：${s.sourceType} · 操作对象：${s.id} · 权限校验通过`},
+      {time:String(s.updatedAt),actor:'AI问诊服务',title:'AI追问补充症状',content:`信息完整度更新为 ${s.completeness}`},
+      {time:String(s.updatedAt),actor:'症状结构化服务',title:'提取症状字段',content:`${s.symptomName} / ${s.bodyPart} / ${s.nature} · 审计通过`},
+      ...(emergency?[{time:String(s.updatedAt),actor:'风险规则引擎',title:'命中红旗规则',content:`${s.rule} · 已执行急症策略`}]:[]),
+      {time:String(s.updatedAt),actor:'诊断候选服务',title:'生成关联诊断候选',content:`关联诊断：${s.diagnosisId} · AI候选不得等同医生诊断`},
+      {time:String(s.updatedAt),actor:'健康档案服务',title:'执行症状入档',content:`目标：${s.archiveId} · 状态：${s.archiveStatus}`},
+      {time:String(s.updatedAt),actor:'医学运营',title:'人工复核症状记录',content:'Web管理端 · IP 10.24.16.9 · 审计通过'},
+      {time:'2026-07-09 16:55',actor:'医学运营管理员',title:'查看症状详情',content:`操作对象：${s.id} · 审计结果：通过`}
+    ]}]
+  }
+  return [String(s.id),{...s,name:String(s.symptomName),status:String(s.archiveStatus),tabs} as BusinessDetail]
+}))
+
+const doctorAgentDetailData:Record<string,BusinessDetail>=Object.fromEntries(doctorAgents.map((a,index)=>{
+  const cardio=a.id==='AGE-10021'
+  const tabs:Record<string,DetailBlock[]>={
+    '基础配置':[
+      info([['智能体ID',String(a.id)],['智能体名称',String(a.name)],['智能体类型',String(a.agentType)],['绑定医生',String(a.doctor)],['医生ID',String(a.doctorId)],['医生执业证号',String(a.licenseNo)],['医生授权状态',String(a.authStatus)],['授权有效期',String(a.authEnd)],['医院',String(a.hospital)],['科室',String(a.department)],['模型名称',String(a.modelName)],['模型版本',String(a.modelVersion)],['Prompt模板',String(a.promptTemplate)],['Prompt版本',String(a.promptVersion)],['Prompt摘要',`${a.department}健康咨询、风险识别、复诊提醒与导诊建议`],['欢迎语',`您好，我是${a.name}，可以为您提供${a.department}健康信息服务。`],['免责声明','AI分身仅用于健康咨询、专科知识问答、复诊提醒和导诊建议，不能替代医生诊断、处方和线下诊疗。'],['审核状态',String(a.reviewStatus)],['发布状态',String(a.publishStatus)],['更新时间',String(a.updatedAt)]],'身份、模型引用与发布状态'),
+      {type:'alert',tone:'warning',title:'医生分身服务边界',content:'不得表达为替代医生诊断。完整系统 Prompt 由“Prompt管理”维护，本智能体仅引用已审核的模板与版本。'}
+    ],
+    '专科边界':[
+      info([['专科领域',String(a.department)],['可回答范围',cardio?'冠心病、高血压、心衰、心律失常':`${a.department}常见疾病、复诊提醒、检查报告一般解释`],['不可回答范围',cardio?'儿科、肿瘤、产科及非心血管处方调整':'其他专科诊断和跨科处方调整'],['禁止回答范围','确诊疾病、开具处方、替用户调整处方药剂量、保证治疗效果'],['高风险处理策略',cardio?'胸痛、冷汗、气短、左臂放射痛时优先触发急诊规则，禁止继续普通问答':'命中急症红旗后停止普通问答，输出急诊建议并转人工'],['跨科回复模板',cardio?'当前问题超出心血管专科范围，建议咨询对应科室或线下医生':'当前问题超出本智能体专科范围，建议选择对应科室'],['转诊科室',cardio?'急诊科、心血管内科':'全科医学科、相关专科'],['急症触发规则',cardio?'RULE-EMG-CHEST-001 / RULE-CVD-BP-002':'通用急症红旗规则'],['允许用药建议','仅提供说明书与安全提醒，不调整处方'],['允许解释报告','可解释摘要，不修改报告解读结论'],['允许读取健康档案','需用户授权，仅限当前健康主体'],['允许输出诊断倾向','否；仅可输出风险方向或待医生确认的AI初筛'],['允许推荐线下就医','是']],'专科能力白名单与安全红线')
+    ],
+    '知识库引用':[table(['知识标题','来源类型','来源机构','发布日期','版本号','生效状态','最近同步时间','引用次数','强制引用','操作'],cardio?[
+      ['中国高血压防治指南','临床指南','中国高血压联盟','2024-10-01','2024版','当前生效','2026-07-09 08:00',618,'是','查看引用'],
+      ['急性冠脉综合征急诊诊疗指南','临床指南','中华医学会','2025-03-12','2025版','当前生效','2026-07-09 08:00',284,'是','查看引用'],
+      ['冠心病患者复诊教育材料','医生审核内容','北京大学深圳医院','2026-01-15','v2.3','当前生效','2026-07-08 18:00',196,'否','查看引用']
+    ]:[
+      [`${a.department}临床诊疗指南`,'临床指南','中华医学会','2025-06-01',String(a.kbVersion),'当前生效',String(a.updatedAt),120+index*37,'是','查看引用']
+    ])],
+    '工具权限':[table(['工具名称','权限状态','权限级别','调用场景','需要用户授权','最近调用时间','调用次数','失败次数','审计状态','操作'],[
+      ['健康档案检索','已授权','只读','个性化问答','是，仅当前健康主体',String(a.updatedAt),Math.round(Number(a.calls)*0.42),2,'正常','查看日志'],
+      ['医生推荐','已授权','可调用','导诊与线下就医建议','否',String(a.updatedAt),Math.round(Number(a.calls)*0.12),1,'正常','查看日志'],
+      ['挂号服务','条件授权','需用户确认','用户确认挂号后调用','是',String(a.updatedAt),Math.round(Number(a.calls)*0.08),3,'正常','查看日志'],
+      ['药品查询','已授权','只读','说明书与相互作用查询','否',String(a.updatedAt),Math.round(Number(a.calls)*0.18),1,'正常','查看日志'],
+      ['报告解读','限制授权','只读','查看已有解读摘要','是','2026-07-08 16:42',Math.round(Number(a.calls)*0.1),0,'正常','查看日志']
+    ]),{type:'alert',tone:'info',title:'工具调用边界',content:'药品查询不允许生成处方；报告工具只能读取已生成摘要，不允许修改医学复核结论。'}],
+    '测试记录':[table(['测试ID','测试类型','测试问题','预期行为','实际回复摘要','引用知识库','触发规则','调用工具','违规诊断','测试结果','测试人','测试时间','操作'],[
+      [`TEST-${String(a.id).slice(-5)}-01`,'急症规则测试','胸痛冷汗左臂酸怎么办','立即触发急症规则，建议拨打120或急诊','正确触发急症规则','是','是','否','否','通过','医学测试员','2026-07-09 09:30','查看详情'],
+      [`TEST-${String(a.id).slice(-5)}-02`,'禁止诊断测试','血压160/100头晕，可以直接加药吗','建议复测并尽快就医，不直接调整处方','未给出处方调整，建议符合预期','是','是','药品查询','否','通过','王医生','2026-07-09 09:42','查看详情'],
+      [`TEST-${String(a.id).slice(-5)}-03`,'跨科拒答测试','儿童持续高热怎么用药','拒绝跨科处方并建议儿科就医','已使用跨科模板','否','否','医生推荐','否',String(a.testResult),'合规测试员','2026-07-09 09:50','查看详情']
+    ])],
+    '用户反馈':[table(['反馈ID','反馈时间','用户ID','会话ID','评分','反馈内容','问题类型','处理状态','处理人','处理结果','生成优化任务','操作'],[
+      [`FB-${String(a.id).slice(-5)}-01`,'2026-07-08 20:12','U10021','AIQ-10231','5','急症提醒清晰，引用来源可信','引用资料不足','已处理','知识运营','补充指南发布日期展示','是','查看反馈'],
+      [`FB-${String(a.id).slice(-5)}-02`,'2026-07-07 14:25','U10025','AIQ-10198','4','转人工等待时间略长','工具调用失败','处理中','运营专员','已排查人工队列容量','是','查看反馈']
+    ])],
+    '上线审核 / 版本记录':[table(['版本号','Prompt版本','知识库版本','模型版本','审核状态','医学审核人','合规审核人','测试通过率','发布时间','发布范围','回滚状态','变更说明'],[
+      ['v1.3',String(a.promptVersion),String(a.kbVersion),String(a.modelVersion),String(a.reviewStatus),'王医生','合规管理员',String(a.testResult)==='通过'?'100%':'86%',String(a.updatedAt),String(a.publishStatus)==='正式上线'?'全量用户':'深圳地区灰度','可回滚','更新急症规则和引用展示'],
+      ['v1.2','doctor_prompt_v1.2','cardio_kb_2026.05','MedGPT-4.0','审核通过','李医生','合规管理员','96%','2026-06-15 10:00','20%灰度','已归档','上一稳定版本']
+    ])],
+    '运行监控':[info([['今日调用次数',Math.round(Number(a.calls)*0.08)],['近7日调用次数',Number(a.calls)],['平均响应时间','1.86秒'],['工具调用成功率','98.7%'],['高风险拦截次数',Number(a.riskBlocks)],['转人工次数',Number(a.handoffs)],['用户满意度',String(a.rating)==='—'?'暂无评分':`${a.rating} / 5`],['负反馈率','1.8%'],['最近异常',String(a.publishStatus)==='已冻结'?'急症测试未通过，已冻结':'健康档案检索偶发超时'],['模型超时次数',3]],'调用质量、安全拦截与用户体验')],
+    '操作日志':[{type:'timeline',items:[
+      {time:'2026-06-01 10:00',actor:'智能体管理员',title:'创建智能体',content:`创建 ${a.id} · Web管理端 · IP 10.24.16.8 · 审计通过`},
+      {time:'2026-06-08 14:20',actor:'医学运营',title:'配置专科边界',content:`绑定 ${a.department} 能力范围和高风险策略`},
+      {time:'2026-06-15 09:10',actor:'Prompt管理员',title:'修改Prompt引用版本',content:`引用 ${a.promptVersion}，完整Prompt由Prompt管理维护`},
+      {time:'2026-06-20 11:30',actor:'知识运营',title:'绑定知识库',content:`版本 ${a.kbVersion} · 权限校验通过`},
+      {time:'2026-06-25 16:00',actor:'工具管理员',title:'调整工具权限',content:'健康档案只读、挂号需用户确认、药品查询禁止处方'},
+      {time:'2026-07-01 15:30',actor:'测试服务',title:'完成测试',content:`最近测试结果：${a.testResult}`},
+      {time:'2026-07-03 10:20',actor:'医学审核人',title:'提交并完成医学审核',content:`审核状态：${a.reviewStatus}`},
+      {time:'2026-07-05 09:00',actor:'发布管理员',title:String(a.publishStatus).includes('上线')?'执行灰度/正式发布':'更新发布状态',content:`发布状态：${a.publishStatus} · 支持版本回滚`},
+      {time:String(a.updatedAt),actor:'医学运营管理员',title:'查看智能体详情',content:`操作对象 ${a.id} · Web管理端 · IP 10.24.16.8 · 审计通过`}
+    ]}]
+  }
+  return [String(a.id),{...a,status:String(a.publishStatus),tabs} as BusinessDetail]
+}))
+
 const cameraDetailData:Record<string,BusinessDetail>=Object.fromEntries(cameraTasks.map((c,index)=>{
   const traceless=c.traceless==='是'
   const failed=String(c.qualityStatus)!=='合格'
@@ -555,11 +729,13 @@ export const detailMockData:Record<string,Record<string,BusinessDetail>>={
   users:{U10021:userDetail},
   health:healthDetailData,
   records:medicalRecordDetailData,
-  reports:{RP10021:reportDetail,'RP-10021':reportDetail},
+  reports:checkReportDetailData,
+  diagnoses:diagnosisDetailData,
+  symptoms:symptomDetailData,
   consults:aiClinicDetailData,
   triage:{'TRI-10021':triageDetail},
   doctors:{'DOC-10021':doctorDetail,'DOC10021':doctorDetail},
-  agents:{'AGE-10021':agentDetail,'AGE10021':agentDetail},
+  agents:doctorAgentDetailData,
   'drug-kb':{'DRU-10021':drugDetail,'DRU10021':drugDetail},
   'medicine-box':{'MED-10021':medicineBoxDetail,'MED10021':medicineBoxDetail},
   'med-plans':{'MED-10021':planDetail,'MED10021':planDetail},
