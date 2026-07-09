@@ -148,6 +148,68 @@ const correctionDetail:BusinessDetail={id:'COR-10021',name:'OU误写阳性纠错
   '操作日志':[logs('纠错记录')]
 }}
 
+const interpretationDetail:BusinessDetail={
+  id:'INT-10021',name:'泪液分泌功能测定报告',reportId:'RP10021',userId:'U10021',userName:'刘志辉',subject:'本人',subjectName:'刘志辉',
+  ocr:'OCR成功',structured:'已结构化',ai:'已解读',review:'待复核',status:'待复核',
+  tabs:{
+    '任务概览':[
+      info([['解读任务ID','INT-10021'],['OCR任务ID','OCR10021'],['报告ID','RP10021'],['用户ID','U10021'],['用户姓名','刘志辉'],['档案主体','本人'],['主体姓名','刘志辉'],
+        ['报告名称','泪液分泌功能测定报告'],['报告类型','眼科检查'],['医院','华中科技大学协和深圳医院'],['科室','眼科门诊'],['报告日期','2026-06-27'],
+        ['文件类型','报告图片 JPG'],['OCR模型','Vision OCR Pro'],['OCR状态','成功'],['结构化状态','已结构化'],['AI解读状态','已解读'],['医学复核状态','待复核'],
+        ['识别置信度','96%'],['异常字段数',4],['不确定字段数',1],['上传来源','医院同步'],['创建时间','2026-07-09 10:24'],['更新时间','2026-07-09 10:45']],'任务与报告归属'),
+      {type:'alert',tone:'info',title:'报告归属提示',content:'该报告归属：刘志辉 / 本人。AI 解读、结构化字段和复诊摘要均应绑定到该健康档案主体，禁止混入家人档案。'}
+    ],
+    'OCR文本':[
+      {type:'text',title:'泪液分泌功能测定报告 · OCR原文',content:'泪液分泌功能测定\n\nSchirmer试验：\nOD：10mm/5min\nOS：7mm/5min\n\n角膜荧光素染色检查：OU\n\n泪膜破裂时间：\nOD：2s\nOS：1s'},
+      {type:'alert',tone:'warning',title:'OCR语义注意',content:'不要把 OU 解读为阳性。OU 仅表示双眼，报告没有提供阳性或阴性结论。'},
+      {type:'ai',model:'Vision OCR Pro',tool:'医疗文档 OCR',duration:'1.82s',input:'报告图片 1 页，分辨率 2480×3508',output:'识别文本 126 字，置信度 96%，定位 5 个候选结构化字段'}
+    ],
+    '结构化字段':[
+      table(['字段ID','字段名称','原文内容','结构化值','单位','参考范围','是否异常','是否推断','不确定','来源位置','复核状态','备注'],[
+        ['FIELD-10021','Schirmer OD','OD:10mm/5min','10','mm/5min','通常 ≥10mm/5min','边界/轻度偏低','否','否','第1页 Schirmer试验区域','已通过','右眼泪液分泌结果'],
+        ['FIELD-10022','Schirmer OS','OS:7mm/5min','7','mm/5min','通常 ≥10mm/5min','偏低','否','否','第1页 Schirmer试验区域','已通过','左眼泪液分泌偏低'],
+        ['FIELD-10023','BUT OD','OD:2s','2','秒','通常 >10秒','异常','否','否','第1页 泪膜破裂时间区域','已通过','右眼泪膜破裂时间明显缩短'],
+        ['FIELD-10024','BUT OS','OS:1s','1','秒','通常 >10秒','异常','否','否','第1页 泪膜破裂时间区域','已通过','左眼泪膜破裂时间明显缩短'],
+        ['FIELD-10025','角膜荧光素染色检查','OU','双眼','无','无','报告未明确','否','是','第1页 角膜荧光素染色区域','待复核','OU仅表示双眼，AI不得输出“双眼阳性”']
+      ]),
+      {type:'alert',tone:'danger',title:'不确定字段必须保留',content:'FIELD-10025 未提供阳性/阴性结论。结构化值只能记录“双眼”，异常状态必须保留为“报告未明确”。'}
+    ],
+    'AI解读内容':[
+      {type:'text',title:'患者版解读',content:'这份检查提示泪膜破裂时间明显缩短，说明泪膜稳定性较差，常见于干眼症、睑板腺功能障碍等情况。Schirmer左眼结果偏低，提示左眼泪液分泌也可能不足。具体分型和治疗方案需结合医生面诊判断。'},
+      {type:'text',title:'医生版摘要',content:'2026-06-27 泪液检查：Schirmer OD 10mm/5min，OS 7mm/5min；BUT OD 2s，OS 1s；角膜荧光素染色检查记录为 OU，报告未标注阳性/阴性。'},
+      {type:'alert',tone:'warning',title:'不确定字段提醒',content:'角膜荧光素染色检查字段仅写 OU。OU 只表示双眼，不代表阳性或阴性。AI生成摘要时不得写“双眼阳性”。'},
+      {type:'ai',model:'MedGPT-4.1',tool:'患者版解读 + 医生摘要',duration:'1.34s',input:'5个结构化字段及报告OCR原文',output:'生成患者版解读 186 字、医生版摘要 92 字，保留 1 个不确定字段'}
+    ],
+    '医学复核':[
+      info([['复核状态','待复核'],['复核人','李医生'],['复核重点','OU字段是否被过度解释'],['复核意见','建议将OU标记为“不确定字段”，不得写阳性'],['是否同步规则库','是'],['关联规则ID','RULE-RPT-OU-001'],['复核时间','2026-07-09 10:40']],'医学审核信息'),
+      {type:'alert',tone:'warning',title:'待完成复核',content:'规则库同步将在医学审核员确认后执行，历史解读需同时回查。'}
+    ],
+    '关联问诊':[
+      table(['会话ID','问诊主题','用户','咨询主体','风险等级','是否入档','创建时间'],[
+        ['AI10021','干眼复诊摘要','刘志辉','本人','普通','否','2026-07-09 09:12'],
+        ['AI10031','报告结构化测试','刘志辉','本人','普通','否','2026-07-09 10:31'],
+        ['AI10045','OU字段纠错','刘志辉','本人','普通','否','2026-07-09 10:36']
+      ])
+    ],
+    '纠错记录':[
+      table(['纠错ID','纠错对象','原错误内容','正确内容','纠错类型','状态','处理人','处理时间'],[
+        ['COR10021','角膜荧光素染色字段','角膜荧光素染色：双眼阳性','报告原文仅写 OU，未标注阳性/阴性','AI推断过度 / 医学误读','已修正当前会话','医学审核员','2026-07-09 10:45']
+      ]),
+      {type:'alert',tone:'success',title:'纠错已进入规则治理',content:'已创建 RULE-RPT-OU-001，后续报告解读将禁止依据 OU 推断阳性或阴性。'}
+    ],
+    '操作日志':[
+      {type:'timeline',items:[
+        {time:'2026-07-09 10:24',actor:'系统',title:'创建OCR任务 OCR10021',content:'绑定报告 RP10021、用户 U10021 与本人健康档案'},
+        {time:'2026-07-09 10:25',actor:'Vision OCR Pro',title:'完成文本识别',content:'识别置信度96%，提取报告文本126字'},
+        {time:'2026-07-09 10:26',actor:'结构化引擎',title:'提取结构化字段',content:'提取5个字段，其中1个不确定字段'},
+        {time:'2026-07-09 10:30',actor:'MedGPT-4.1',title:'生成AI解读',content:'生成患者版解读和医生版摘要'},
+        {time:'2026-07-09 10:35',actor:'用户反馈',title:'提交OU字段反馈',content:'用户指出 OU 不应被解释为阳性'},
+        {time:'2026-07-09 10:45',actor:'医学审核员',title:'标记不确定字段',content:'将OU字段标记为不确定并创建规则治理任务'}
+      ]}
+    ]
+  }
+}
+
 export const detailMockData:Record<string,Record<string,BusinessDetail>>={
   users:{U10021:userDetail},
   health:{'HEA-10021':healthDetail,'HEA-10021-health':healthDetail},
@@ -162,4 +224,5 @@ export const detailMockData:Record<string,Record<string,BusinessDetail>>={
   'med-plans':{'MED-10021':planDetail,'MED10021':planDetail},
   rules:{'RUL-10021':ruleDetail,'RULE-EMG-CHEST-001':ruleDetail},
   corrections:{'COR-10021':correctionDetail,'COR10021':correctionDetail}
+  ,interpretation:{'INT-10021':interpretationDetail}
 }

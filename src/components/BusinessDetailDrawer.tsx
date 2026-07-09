@@ -5,10 +5,10 @@ import { detailMockData, type BusinessDetail, type DetailBlock } from '../mock/d
 import type { RowData } from '../types'
 import StatusTag from './StatusTag'
 
-export default function BusinessDetailDrawer({row,pageKey,onClose,onNavigate,onToast}:{row:RowData|null;pageKey:string;onClose:()=>void;onNavigate:(key:string)=>void;onToast:(message:string)=>void}){
+export default function BusinessDetailDrawer({row,pageKey,initialTab,onClose,onNavigate,onToast}:{row:RowData|null;pageKey:string;initialTab?:string;onClose:()=>void;onNavigate:(key:string)=>void;onToast:(message:string)=>void}){
   const [active,setActive]=useState(0)
-  useEffect(()=>setActive(0),[row?.id,pageKey])
   const config=detailConfigs[pageKey]??detailConfigs.users
+  useEffect(()=>setActive(Math.max(0,initialTab?config.tabs.indexOf(initialTab):0)),[row?.id,pageKey,initialTab,config.tabs])
   const detail=useMemo(()=>row?resolveDetail(pageKey,row,config.tabs):null,[pageKey,row,config.tabs])
   if(!row||!detail)return null
   const tab=config.tabs[active]??config.tabs[0]
@@ -87,5 +87,6 @@ function navigateById(id:string,onNavigate:(key:string)=>void){
   else if(id.startsWith('HEA'))onNavigate('health')
   else if(id.startsWith('DG'))onNavigate('diagnoses')
   else if(id.startsWith('RULE'))onNavigate('rules')
+  else if(id.startsWith('COR'))onNavigate('corrections')
 }
 function isStatus(value:string){return /正常|异常|风险|完成|通过|待|可读取|不可读取|启用|上线|关闭|缺失|成功|否|是$/.test(value)}

@@ -154,6 +154,39 @@ pageConfigs.health.detailTabs=['基础信息','病历记录','检查报告','诊
 pageConfigs.reports.detailTabs=['报告原图','OCR文本','结构化字段','AI解读','人工复核','操作日志']
 pageConfigs.consults.detailTabs=['完整对话','AI追问','健康档案引用','急症规则命中','导诊结果','服务卡曝光','入档结果','质检记录','操作日志']
 
+pageConfigs.interpretation={
+  ...pageConfigs.interpretation,
+  title:'报告解读管理',
+  description:'管理报告 OCR、字段结构化、AI 解读及医学复核的完整处理链路',
+  primaryAction:'新建解读任务',
+  columns:[
+    col('id','解读任务ID'),col('reportId','报告ID'),col('userId','用户ID'),col('userName','用户姓名'),col('subject','档案主体'),col('subjectName','主体姓名'),
+    col('name','报告名称'),col('reportType','报告类型'),col('hospital','医院'),col('department','科室'),col('taskType','任务类型'),
+    col('ocr','OCR状态',true),col('structured','结构化状态',true),col('ai','AI解读状态',true),col('confidence','识别置信度'),
+    col('abnormalCount','异常字段数'),col('uncertainCount','不确定字段数'),col('review','复核状态',true),col('updatedAt','更新时间')
+  ],
+  rows:[
+    ['INT-10021','RP10021','U10021','刘志辉','本人','刘志辉','泪液分泌功能测定报告','眼科检查','华中科技大学协和深圳医院','眼科门诊','OCR+结构化+解读','成功','已结构化','已解读','96%',4,1,'待复核'],
+    ['INT-10022','RP10022','U10021','刘志辉','本人','刘志辉','屈光检查报告','屈光检查','华中科技大学协和深圳医院','眼科门诊','结构化+解读','成功','部分结构化','待复核','93%',2,1,'待复核'],
+    ['INT-10023','RP10023','U10021','刘志辉','本人','刘志辉','消化门诊记录','门诊记录','北京大学深圳医院','消化内科','OCR+解读','成功','已结构化','已解读','97%',2,0,'已通过'],
+    ['INT-10024','RP10024','U10021','刘志辉','爸爸','测试父亲','血压记录','AI对话提取','后台数据','心血管内科','结构化任务','无需OCR','已结构化','待复核','91%',1,2,'待复核'],
+    ['INT-10025','RP10025','U10035','李梅','本人','李梅','幽门螺杆菌检测','检验报告','南方医科大学深圳医院','消化内科','OCR+结构化+解读','成功','已结构化','已解读','99%',0,0,'已通过'],
+    ['INT-10026','RP10026','U10028','陈雨桐','本人','陈雨桐','腹部超声检查','影像报告','北京大学深圳医院','超声科','OCR+解读','成功','已结构化','已解读','95%',1,0,'已通过'],
+    ['INT-10027','RP10027','U10032','周铭轩','本人','周铭轩','胃镜检查报告','胃镜报告','深圳市第三人民医院','消化内科','OCR+结构化','部分成功','部分结构化','未解读','82%',3,2,'待复核'],
+    ['INT-10028','RP10028','U10041','林婉清','女儿','林小朋友','儿童血常规','检验报告','深圳市儿童医院','儿科','OCR+结构化+解读','成功','已结构化','已解读','98%',3,0,'已通过']
+  ].map((x,i)=>({id:x[0],reportId:x[1],userId:x[2],userName:x[3],user:String(x[3]),subject:x[4],subjectName:x[5],name:x[6],reportType:x[7],hospital:x[8],department:x[9],taskType:x[10],ocr:x[11],structured:x[12],ai:x[13],confidence:x[14],abnormalCount:x[15],uncertainCount:x[16],review:x[17],status:x[17],updatedAt:dates[i%dates.length]} as RowData)),
+  filters:[
+    {key:'userName',label:'用户',options:['全部','刘志辉','李梅','陈雨桐','周铭轩','林婉清']},
+    {key:'subject',label:'档案主体',options:['全部','本人','爸爸','女儿']},
+    {key:'reportType',label:'报告类型',options:['全部','眼科检查','屈光检查','门诊记录','AI对话提取','检验报告','影像报告','胃镜报告']},
+    {key:'ocr',label:'OCR状态',options:['全部','成功','部分成功','无需OCR']},
+    {key:'structured',label:'结构化状态',options:['全部','已结构化','部分结构化']},
+    {key:'ai',label:'AI解读状态',options:['全部','已解读','待复核','未解读']},
+    {key:'review',label:'复核状态',options:['全部','待复核','已通过']}
+  ],
+  actions:['查看详情','查看原报告','查看结构化字段','重新OCR','重新生成解读','提交复核','查看纠错']
+}
+
 pageConfigs.doctors.fields = [
   field('name','医生姓名'),field('avatar','头像','file'),field('hospital','所属医院','select',hospitals),
   field('department','所属科室','select',['消化内科','心血管内科','眼科','全科医学科']),field('title','职称','select',['主任医师','副主任医师','主治医师']),

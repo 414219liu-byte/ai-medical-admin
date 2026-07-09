@@ -15,7 +15,7 @@ export default function DataTable({columns,rows,actions,selected,onSelected,onAc
         <td className="check"><input type="checkbox" checked={selected.includes(String(row.id))} onChange={()=>onSelected(selected.includes(String(row.id))?selected.filter(x=>x!==String(row.id)):[...selected,String(row.id)])}/></td>
         <td className="index">{i+1}</td>
         {columns.map(c=><td key={c.key} title={String(row[c.key]??'—')}>{c.status?<StatusTag value={row[c.key]??'—'}/>:String(row[c.key]??'—')}</td>)}
-        <td className="operations"><div>{actions.slice(0,4).map((a,j)=><button key={a} className={j===0?'main-op':''} onClick={()=>onAction(a,row)}>{a}</button>)}</div></td>
+        <td className="operations"><div>{actions.map((a,j)=><button key={a} className={j===0?'main-op':''} onClick={()=>onAction(a,row)}>{a}</button>)}</div></td>
       </tr>)}</tbody>
     </table></div>
     {rows.length===0 && <div className="empty"><Inbox/><b>没有找到匹配数据</b><span>试试调整筛选条件</span></div>}

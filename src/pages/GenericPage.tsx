@@ -9,17 +9,28 @@ import ConfirmDialog from '../components/ConfirmDialog'
 
 export default function GenericPage({config,onNavigate,onToast}:{config:PageConfig;onNavigate:(k:string)=>void;onToast:(m:string)=>void}) {
   const [rows,setRows]=useState(config.rows)
-  const [keyword,setKeyword]=useState(''),[filter,setFilter]=useState('全部'),[status,setStatus]=useState('全部'),[date,setDate]=useState('')
+  const [keyword,setKeyword]=useState(''),[filter,setFilter]=useState('全部'),[status,setStatus]=useState('全部'),[date,setDate]=useState(''),[endDate,setEndDate]=useState('')
+  const [extraValues,setExtraValues]=useState<Record<string,string>>({})
   const [selected,setSelected]=useState<string[]>([]),[detail,setDetail]=useState<RowData|null>(null),[editing,setEditing]=useState<RowData|null|undefined>(undefined)
+  const [detailTab,setDetailTab]=useState<string|undefined>()
   const [deleteRow,setDeleteRow]=useState<RowData|null>(null)
   const filterCfg=config.filters?.[0]??{key:'status',label:'状态',options:['全部','正常','待审核']}
   const shown=useMemo(()=>rows.filter(r=>{
     const matches=!keyword||Object.values(r).some(v=>String(v).toLowerCase().includes(keyword.toLowerCase()))
-    const dateMatch=!date||String(r.updatedAt??r.date??r.reportDate??'').startsWith(date)
-    return matches&&dateMatch&&(filter==='全部'||String(r[filterCfg.key])===filter)&&(status==='全部'||String(r.status)===status)
-  }),[rows,keyword,filter,status,date,filterCfg.key])
+    const rowDate=String(r.updatedAt??r.date??r.reportDate??'').slice(0,10)
+    const dateMatch=(!date||rowDate>=date)&&(!endDate||rowDate<=endDate)
+    const extras=(config.filters??[]).slice(1).every(item=>(extraValues[item.key]??'全部')==='全部'||String(r[item.key])===extraValues[item.key])
+    return matches&&dateMatch&&extras&&(filter==='全部'||String(r[filterCfg.key])===filter)&&(status==='全部'||String(r.status)===status)
+  }),[rows,keyword,filter,status,date,endDate,extraValues,filterCfg.key,config.filters])
   const action=(a:string,row:RowData)=>{
-    if(/查看|关联|原图|预览|说明书/.test(a)){setDetail(row);return}
+    if(config.key==='interpretation'){
+      if(a==='查看纠错'){onNavigate('corrections');return}
+      if(a==='查看原报告'){onNavigate('reports');return}
+      const tabMap:Record<string,string>={'查看详情':'任务概览','查看结构化字段':'结构化字段'}
+      if(tabMap[a]){setDetailTab(tabMap[a]);setDetail(row);return}
+      if(a==='重新OCR'||a==='重新生成解读'||a==='提交复核'){onToast(`${a}任务已提交`);return}
+    }
+    if(/查看|关联|原图|预览|说明书/.test(a)){setDetailTab(undefined);setDetail(row);return}
     if(a.includes('编辑')){setEditing(row);return}
     if(a.includes('删除')){setDeleteRow(row);return}
     if(a.includes('档案')){onNavigate('health');return}
@@ -40,10 +51,11 @@ export default function GenericPage({config,onNavigate,onToast}:{config:PageConf
     setEditing(undefined);onToast(editing?'修改已保存':'新增记录成功')
   }
   return <><div className="page-title"><div><h1>{config.title}</h1><p>{config.description}</p></div><button className="icon-btn"><MoreHorizontal/></button></div>
-    <FilterBar keyword={keyword} onKeyword={setKeyword} filter={filter} onFilter={setFilter} options={filterCfg.options} filterLabel={filterCfg.label} status={status} onStatus={setStatus} date={date} onDate={setDate}
-      onReset={()=>{setKeyword('');setFilter('全部');setStatus('全部');setDate('')}} onAdd={()=>setEditing(null)} addText={config.primaryAction??'新增记录'} onExport={()=>onToast(`已导出 ${shown.length} 条数据`)}/>
+    <FilterBar keyword={keyword} onKeyword={setKeyword} filter={filter} onFilter={setFilter} options={filterCfg.options} filterLabel={filterCfg.label} status={status} onStatus={setStatus} date={date} onDate={setDate} endDate={endDate} onEndDate={setEndDate}
+      extraFilters={(config.filters??[]).slice(1)} extraValues={extraValues} onExtra={(key,value)=>setExtraValues(v=>({...v,[key]:value}))}
+      onReset={()=>{setKeyword('');setFilter('全部');setStatus('全部');setDate('');setEndDate('');setExtraValues({})}} onAdd={()=>setEditing(null)} addText={config.primaryAction??'新增记录'} onExport={()=>onToast(`已导出 ${shown.length} 条数据`)}/>
     <DataTable columns={config.columns} rows={shown} actions={config.actions??['查看','编辑','删除']} selected={selected} onSelected={setSelected} onAction={action}/>
-    <BusinessDetailDrawer row={detail} pageKey={config.key} onClose={()=>setDetail(null)} onNavigate={k=>{setDetail(null);onNavigate(k)}} onToast={onToast}/>
+    <BusinessDetailDrawer row={detail} pageKey={config.key} initialTab={detailTab} onClose={()=>setDetail(null)} onNavigate={k=>{setDetail(null);onNavigate(k)}} onToast={onToast}/>
     <EditModal open={editing!==undefined} title={`${editing?'编辑':'新增'}${config.title.replace('管理','')}`} fields={editing?(config.editFields??config.fields):(config.createFields??config.fields)} initial={editing} onClose={()=>setEditing(undefined)} onSave={save}/>
     <ConfirmDialog open={!!deleteRow} name={String(deleteRow?.name??'')} onClose={()=>setDeleteRow(null)} onConfirm={()=>{setRows(x=>x.filter(r=>r.id!==deleteRow?.id));setDeleteRow(null);onToast('记录已删除')}}/>
   </>
