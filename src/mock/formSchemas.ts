@@ -12,9 +12,15 @@ export const formSchemas:Record<string,Field[]>={
   users:[req('name','姓名'),f('nickname','昵称'),req('phone','手机号'),req('gender','性别','radio',['男','女','未知']),f('birthday','出生日期','date'),
     req('city','所在城市','select',['深圳南山','深圳福田','深圳宝安','深圳龙岗','惠州大亚湾','广州天河']),req('source','注册来源','select',['AI问诊','报告解读','健康档案','挂号入口','药箱入口','支付宝搜索']),
     req('status','账号状态','select',['正常','待完善','禁用','注销中']),f('risk','风险标签','multiselect',['无','干眼复诊','胃病随访','高血压风险','急症提醒','投诉用户']),textArea('remark','备注')],
-  family:[req('user','所属用户','select',users),req('relation','成员关系','select',['爸爸','妈妈','老公','老婆','儿子','女儿','哥哥','姐姐','妹妹','弟弟','爷爷','奶奶','外公','外婆','其他']),
-    req('name','成员姓名'),req('gender','性别','radio',['男','女','未知']),req('birthday','出生日期','date'),f('phone','手机号'),req('shared','是否共享管理','radio',yesNo),
-    f('permission','共享权限','multiselect',['仅查看','可编辑','可上传报告','可管理用药']),req('aiReadable','是否允许AI读取','select',['允许','禁止','每次询问']),textArea('remark','备注')],
+  family:[
+    req('user','所属用户','select',['刘志辉 / U10021 / 138****6210','陈雨桐 / U10022 / 138****6211','周铭轩 / U10023 / 138****6212','林婉清 / U10024 / 138****6213']),
+    {...f('subjectId','健康主体ID'),readonly:true,placeholder:'保存后系统自动生成'},
+    req('relation','成员关系','select',['本人','父亲','母亲','配偶','儿子','女儿','祖父','祖母','其他']),req('name','成员姓名'),req('gender','性别','radio',['男','女','未知']),
+    req('birthDate','出生日期','date',undefined,'请选择出生日期'),f('phone','手机号'),req('source','成员来源','select',['用户手动添加','报告上传识别','AI问诊创建','后台管理员创建']),
+    req('realNameStatus','实名状态','select',['未实名','已实名','监护人确认']),req('shareStatus','共享状态','select',['未共享','已共享','待家属确认','已拒绝','已撤销']),
+    f('authEnd','授权有效期','date'),req('authScope','AI读取范围','multiselect',['不允许','仅本次','允许问诊读取','允许报告解读读取','允许入档与个性化建议']),
+    req('operationReason','操作原因','textarea',undefined,'管理员后台新增家庭成员的业务原因'),textArea('remark','备注')
+  ],
   health:[req('user','归属用户','select',users),req('subject','档案主体','radio',['本人','家庭成员']),req('relation','成员关系','select',['本人','爸爸','妈妈','老公','老婆','儿子','女儿','哥哥','姐姐','其他']),
     req('name','主体姓名'),req('gender','性别','radio',['男','女','未知']),req('birthday','出生日期','date'),f('height','身高 cm','number'),f('weight','体重 kg','number'),
     f('diseases','基础疾病标签','multiselect',['干眼症','睑板腺功能障碍','慢性胃炎','胆汁反流','高血压','糖尿病','冠心病','无']),
@@ -122,11 +128,20 @@ export function createRecordFor(key:string,values:RowData,rows:RowData[]):RowDat
   let id=`${prefix}${10020+rows.length+1}`
   if(['records','reports','consults'].includes(key))id=`${prefix}${stamp}${seq}`
   if(key==='rules'){const map:Record<string,string>={'急症规则':'EMG','用药安全规则':'MED','入档规则':'ARCH','报告解读规则':'RPT'};id=`RULE-${map[String(values.type)]??'GEN'}-${seq}`}
-  const birthday=String(values.birthday??'')
+  const birthday=String(values.birthday??values.birthDate??'')
   const age=birthday?Math.max(0,now.getFullYear()-Number(birthday.slice(0,4))-(now.toISOString().slice(5,10)<birthday.slice(5,10)?1:0)):'—'
   const base:RowData={id,name:String(values.name??values.title??values.type??'新建记录'),status:String(values.status??'待审核'),updatedAt:`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`}
   if(key==='health')Object.assign(base,{age,reports:0,records:0,diagnoses:0,medicines:0})
-  if(key==='family')Object.assign(base,{age,completion:'20%',status:'正常'})
+  if(key==='family'){
+    const n=rows.length+21
+    Object.assign(base,{id:`FM${10020+rows.length+1}`,memberId:`FM${10020+rows.length+1}`,subjectId:`HS${10020+rows.length+1}`,familyRelationId:`FR${10020+rows.length+1}`,consentId:`CONSENT${10020+rows.length+1}`,age,archiveCompleteness:'20%',lastArchiveTime:'尚未入档',businessStatus:'待确认',status:'待确认',auditLog:`AUDIT-FAM-${n}`})
+  }
   if(key==='users')Object.assign(base,{subjects:1,consults:0,reports:0,medicineCount:0,familyCount:0})
+  if(key==='family'){
+    const userText=String(values.user??'')
+    const [userName='',userId='',userPhone='']=userText.split(' / ')
+    return {...base,...values,id:base.id,memberId:base.memberId,subjectId:base.subjectId,familyRelationId:base.familyRelationId,consentId:base.consentId,auditLog:base.auditLog,
+      name:String(values.name),memberName:String(values.name),userName,userId,userPhone,age,genderAge:`${values.gender} / ${age}岁`,businessStatus:'待确认',status:'待确认',updatedAt:base.updatedAt}
+  }
   return {...base,...values,id,age:values.birthday?age:values.age??base.age}
 }

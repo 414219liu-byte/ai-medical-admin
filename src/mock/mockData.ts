@@ -1,6 +1,7 @@
 import type { Column, Field, PageConfig, RowData } from '../types'
 import { createRecordFor, formSchemas } from './formSchemas'
 import { userProfiles } from './userData'
+import { familyMembers } from './familyData'
 
 const people = ['刘志辉', '陈雨桐', '周铭轩', '林婉清', '吴嘉诚', '赵欣怡', '孙建国', '高晓雯', '叶子航', '许安然']
 const hospitals = ['华中科技大学协和深圳医院', '北京大学深圳医院', '南方医科大学深圳医院', '深圳市第三人民医院']
@@ -51,15 +52,15 @@ export const specialConfigs: Record<string, PageConfig> = {
   },
   family: {
     key: 'family', title: '家庭成员管理', group: '用户与档案', description: '维护家庭健康主体、共享关系与数据归属',
-    primaryAction: '新增成员', columns: [col('id', '成员ID'), col('user', '所属用户'), col('relation', '关系'), col('name', '成员姓名'),
-      col('gender', '性别'), col('age', '年龄'), col('shared', '共享管理', true), col('completion', '档案完整度'), col('status', '状态', true), col('updatedAt', '最近更新')],
+    primaryAction: '新增成员', columns: [col('memberId','成员ID'),col('subjectId','健康主体ID'),col('userName','所属用户'),col('relation','关系'),col('memberName','成员姓名'),
+      col('genderAge','性别/年龄'),col('shareStatus','共享状态',true),col('aiReadAuthStatus','AI读取授权',true),col('archiveCompleteness','档案完整度'),col('lastArchiveTime','最近入档'),
+      col('riskTags','风险标签',true),col('businessStatus','业务状态',true),col('updatedAt','最近更新')],
     fields: [field('user', '所属用户', 'select', people), field('relation', '关系', 'select', ['本人', '爸爸', '妈妈', '老公', '老婆', '儿子', '女儿', '其他']),
       field('name', '姓名'), field('gender', '性别', 'select', ['男', '女']), field('birthday', '出生日期', 'date'), field('phone', '手机号'),
       field('shared', '是否共享', 'select', ['是', '否']), field('permission', '共享权限', 'select', ['仅查看', '可管理']), field('remark', '备注', 'textarea')],
-    rows: generate('FM', ['刘志辉', '测试父亲', '小柚子', '陈雨桐妈妈', '周铭轩'], i => ({
-      relation: ['本人', '爸爸', '女儿', '妈妈', '本人'][i % 5], gender: i % 3 === 2 ? '女' : '男',
-      age: [32, 66, 4, 58, 29][i % 5], shared: i % 2 ? '已共享' : '未共享', completion: `${72 + i * 3}%`
-    })), filters: [{key:'relation',label:'关系',options:['全部','本人','爸爸','妈妈','女儿']}], actions: ['查看档案', '编辑', '邀请共享', '删除']
+    rows:familyMembers.map(x=>({...x,genderAge:`${x.gender} / ${x.age}岁`})),
+    filters:[{key:'relation',label:'关系',options:['全部','本人','父亲','母亲','配偶','儿子','女儿','祖父','祖母']},{key:'shareStatus',label:'共享状态',options:['全部','本人主体','未共享','已共享','待家属确认','已拒绝','已撤销']},{key:'aiReadAuthStatus',label:'AI读取授权',options:['全部','已授权','未授权','仅本次授权','限定范围授权','授权已过期']},{key:'businessStatus',label:'业务状态',options:['全部','正常','待确认','授权过期','已停用','数据冲突','待人工复核']}],
+    actions:['查看档案','编辑','调整权限','停用/解除关系']
   },
   records: {
     key: 'records', title: '病历管理', group: '医疗数据', description: '统一管理医院同步、用户上传与 AI 提取的病历',

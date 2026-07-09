@@ -7,6 +7,7 @@ export type DetailBlock =
   | {type:'text';title:string;content:string}
   | {type:'ai';model:string;tool:string;duration:string;input:string;output:string}
 import { userProfiles } from './userData'
+import { familyMembers } from './familyData'
 
 export interface BusinessDetail {
   id:string
@@ -235,6 +236,24 @@ const interpretationDetail:BusinessDetail={
   }
 }
 
+const familyDetailData:Record<string,BusinessDetail>=Object.fromEntries(familyMembers.map((m,index)=>[m.id,{
+  ...m,id:m.id,name:m.memberName,status:m.businessStatus,
+  tabs:{
+    '基础信息':[info([['成员ID',m.memberId],['健康主体ID',m.subjectId],['所属用户ID',m.userId],['所属用户姓名',m.userName],['成员姓名',m.memberName],['家庭关系',m.relation],['性别',m.gender],['出生日期',m.birthDate],['年龄',m.age],['手机号',m.phone],['实名状态',m.realNameStatus],['成员来源',m.source],['当前业务状态',m.businessStatus],['创建时间',m.createdAt],['最近更新时间',m.updatedAt]],'成员身份与主体信息'),...(m.age<18?[{type:'alert',tone:'warning',title:'未成年人主体',content:'该主体由监护人管理，AI读取、报告上传和用药代管均需经过监护人授权。'} as DetailBlock]:[])],
+    '所属用户':[info([['所属用户ID',m.userId],['所属用户姓名',m.userName],['手机号',m.userPhone],['账号状态','正常'],['家庭组ID',m.familyGroupId],['与所属用户关系',m.relation],['是否默认健康主体',m.relation==='本人'?'是':'否'],['最近切换为就诊主体',m.lastArchiveTime],['最近AI服务使用时间',m.lastArchiveTime],['数据归属说明',`${m.memberName}的医疗数据归属于健康主体 ${m.subjectId}，不得混入${m.userName}的其他主体档案。`]],'用户与家庭组关系')],
+    '共享权限':[info([['共享状态',m.shareStatus],['授权编号',m.consentId],['授权人',m.relation==='本人'?m.userName:m.memberName],['被授权人',m.userName],['授权范围',m.authScope],['允许查看健康档案',m.shareStatus==='已共享'||m.shareStatus==='本人主体'?'是':'否'],['允许上传检查报告',m.authScope.includes('报告')?'是':'否'],['允许管理用药',m.authScope.includes('用药')?'是':'否'],['允许发起AI问诊',m.authScope.includes('问诊')?'是':'否'],['允许AI读取档案',m.aiReadAuthStatus],['授权开始时间',m.authStart],['授权结束时间',m.authEnd],['授权来源',m.source],['授权版本','CONSENT-v2.3'],['最近授权变更',m.updatedAt]],'共享授权与权限边界'),...(m.aiReadAuthStatus==='授权已过期'?[{type:'alert',tone:'danger',title:'授权已过期',content:'AI 服务不得继续读取该主体档案，需重新发起家属授权。'} as DetailBlock]:[])],
+    '健康档案':[info([['健康档案ID',`HEA-${m.subjectId.slice(2)}`],['档案完整度',m.archiveCompleteness],['基础信息完整度',m.archiveCompleteness],['过敏史状态',index%3===0?'已完善':'待完善'],['既往史状态',index%2===0?'已完善':'待完善'],['手术史状态',index%4===0?'已完善':'未填写'],['家族史状态',m.age<18?'监护人已填写':'待完善'],['检查报告数量',index%5],['病历数量',index%3],['诊断记录数量',index%4],['症状记录数量',index%6],['用药计划数量',index%3],['最近入档来源',m.source],['最近入档时间',m.lastArchiveTime],['数据冲突状态',m.businessStatus==='数据冲突'?'存在字段冲突':'无冲突']], '档案完整度与医疗数据')],
+    '操作日志':[{type:'timeline',items:[
+      {time:m.updatedAt,actor:'医学运营管理员',title:'查看家庭成员详情',content:`查看成员 ${m.memberId} 与健康主体 ${m.subjectId} 的完整信息`},
+      {time:m.createdAt,actor:m.userName,title:'新增家庭成员',content:`通过${m.source}创建成员关系 ${m.familyRelationId}`},
+      {time:'2026-07-08 16:42',actor:'家庭授权服务',title:m.shareStatus==='已共享'?'家属确认共享授权':'更新共享授权状态',content:`授权编号 ${m.consentId}，当前状态：${m.shareStatus}`},
+      {time:'2026-07-07 09:18',actor:'医疗数据同步服务',title:'同步健康档案',content:`同步主体 ${m.subjectId} 的结构化医疗数据`},
+      {time:'2026-07-06 14:30',actor:'AI问诊服务',title:'读取健康档案',content:`权限校验：${m.aiReadAuthStatus}；读取范围：${m.authScope}`},
+      {time:'2026-07-05 11:06',actor:'报告解读服务',title:'报告归属确认',content:`报告解读结果归属到健康主体 ${m.subjectId}`}
+    ]}]
+  }
+} as BusinessDetail]))
+
 export const detailMockData:Record<string,Record<string,BusinessDetail>>={
   users:{U10021:userDetail},
   health:{'HEA-10021':healthDetail,'HEA-10021-health':healthDetail},
@@ -249,5 +268,6 @@ export const detailMockData:Record<string,Record<string,BusinessDetail>>={
   'med-plans':{'MED-10021':planDetail,'MED10021':planDetail},
   rules:{'RUL-10021':ruleDetail,'RULE-EMG-CHEST-001':ruleDetail},
   corrections:{'COR-10021':correctionDetail,'COR10021':correctionDetail}
-  ,interpretation:{'INT-10021':interpretationDetail}
+  ,interpretation:{'INT-10021':interpretationDetail},
+  family:familyDetailData
 }

@@ -14,6 +14,7 @@ export interface Field {
   options?: string[]
   required?: boolean
   placeholder?: string
+  readonly?: boolean
 }
 
 export interface PageConfig {

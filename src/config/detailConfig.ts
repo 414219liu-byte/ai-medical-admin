@@ -14,7 +14,7 @@ const standard=(businessType:string,tabs=['基础信息','关联记录','流程�
 
 export const detailConfigs:Record<string,DetailConfig>={
   users:{...standard('用户管理'),subtitle:d=>`用户编号：${d.id}｜${d.phone??''}｜${d.city??''}`,statusFields:['status','risk'],tabs:['基础信息','健康主体','最近问诊','检查报告','药箱与用药计划','风险与标签','操作日志'],actions:[{label:'查看健康档案',route:'health',tone:'primary'},{label:'导出用户数据'}]},
-  family:standard('家庭成员管理',['基础信息','所属用户','共享权限','健康档案','操作日志']),
+  family:{...standard('家庭成员管理'),titleField:'memberName',subtitle:d=>`成员编号：${d.memberId}｜健康主体：${d.subjectId}｜所属用户：${d.userName}`,statusFields:['shareStatus','aiReadAuthStatus','businessStatus'],tabs:['基础信息','所属用户','共享权限','健康档案','操作日志'],actions:[{label:'查看健康档案',route:'health',tone:'primary'},{label:'调整共享权限'}]},
   health:{...standard('健康档案管理'),subtitle:d=>`档案编号：${d.id}｜${d.user??''} / ${d.relation??''}`,tabs:['档案概览','基础病与过敏史','病历记录','检查报告','诊断记录','用药记录','AI可读取范围','数据审计'],actions:[{label:'查看病历',route:'records'},{label:'查看报告',route:'reports',tone:'primary'}]},
   records:{...standard('病历管理'),tabs:['病历原文','结构化字段','AI可检索状态','关联报告','关联诊断','操作日志'],actions:[{label:'查看关联报告',route:'reports'},{label:'提交复核',tone:'primary'}]},
   reports:{...standard('检查报告管理'),subtitle:d=>`报告编号：${d.id}｜${d.user??''} / ${d.subject??''}`,statusFields:['ocr','structured','ai'],tabs:['报告概览','报告原图 / OCR文本','结构化字段','AI解读','医学复核','关联问诊','操作日志'],actions:[{label:'查看AI解读',route:'interpretation',tone:'primary'},{label:'提交复核'}]},

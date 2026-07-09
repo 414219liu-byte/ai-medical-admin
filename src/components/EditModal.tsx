@@ -14,18 +14,20 @@ export default function EditModal({open,title,fields,initial,onClose,onSave}:{op
     if(Object.keys(next).length){setErrors(next);return}
     onSave(form)
   }
+  const birthValue=String(form.birthDate??form.birthday??'')
+  const calculatedAge=birthValue?new Date().getFullYear()-Number(birthValue.slice(0,4))-(new Date().toISOString().slice(5,10)<birthValue.slice(5,10)?1:0):null
   if(!open)return null
   return <div className="overlay" onMouseDown={e=>e.target===e.currentTarget&&onClose()}>
     <div className="modal">
       <div className="modal-head"><div><h2>{title}</h2><p>请填写以下信息，带 * 项为必填</p></div><button onClick={onClose}><X/></button></div>
-      <div className="form-grid">{fields.map(f=><label key={f.key} className={f.type==='textarea'||f.type==='file'?'full':''}>
+      <div className="form-grid">{calculatedAge!==null&&calculatedAge<18&&<div className="minor-alert full"><b>未成年人主体</b><span>该成员未满 18 岁，保存前必须确认监护人身份与授权范围。</span></div>}{fields.map(f=><label key={f.key} className={f.type==='textarea'||f.type==='file'?'full':''}>
         <span>{f.required&&<em>*</em>}{f.label}</span>
         {f.type==='select'?<select className={errors[f.key]?'invalid':''} value={String(form[f.key]??'')} onChange={e=>{const value=e.target.value;setForm(prev=>({...prev,[f.key]:value}));setErrors(prev=>({...prev,[f.key]:''}))}}><option value="">请选择</option>{f.options?.map(x=><option key={x}>{x}</option>)}</select>
         :f.type==='radio'?<div className="radio-group">{f.options?.map(x=><label key={x}><input type="radio" name={f.key} checked={form[f.key]===x} onChange={()=>{setForm(prev=>({...prev,[f.key]:x}));setErrors(prev=>({...prev,[f.key]:''}))}}/>{x}</label>)}</div>
         :f.type==='multiselect'?<div className="multi-select">{f.options?.map(x=>{const values=String(form[f.key]??'').split(',').filter(Boolean);return <label key={x}><input type="checkbox" checked={values.includes(x)} onChange={()=>setForm(prev=>{const current=String(prev[f.key]??'').split(',').filter(Boolean);return {...prev,[f.key]:current.includes(x)?current.filter(v=>v!==x).join(','):[...current,x].join(',')}})}/>{x}</label>})}</div>
         :f.type==='textarea'?<textarea value={String(form[f.key]??'')} onChange={e=>{const value=e.target.value;setForm(prev=>({...prev,[f.key]:value}))}} placeholder={`请输入${f.label}`}/>
         :f.type==='file'?<div className={`upload ${errors[f.key]?'invalid':''}`}><Upload/><span>{files[f.key]||String(form[f.key]??'')||'点击上传或拖拽文件到此处'}</span><small>{files[f.key]?'文件已选择（模拟上传）':'支持 JPG、PNG、PDF，最大 10MB'}</small><input type="file" onChange={e=>{const name=e.target.files?.[0]?.name??'';setFiles(prev=>({...prev,[f.key]:name}));setForm(prev=>({...prev,[f.key]:name}));setErrors(prev=>({...prev,[f.key]:''}))}}/></div>
-        :<input className={errors[f.key]?'invalid':''} type={f.type==='date'||f.type==='datetime-local'||f.type==='number'?f.type:'text'} value={String(form[f.key]??'')}
+        :<input className={errors[f.key]?'invalid':''} readOnly={f.readonly} type={f.type==='date'||f.type==='datetime-local'||f.type==='number'?f.type:'text'} value={String(form[f.key]??'')}
           onInput={e=>{const value=e.currentTarget.value;setForm(prev=>({...prev,[f.key]:value}));setErrors(prev=>({...prev,[f.key]:''}))}}
           onChange={e=>{const value=e.target.value;setForm(prev=>({...prev,[f.key]:value}));setErrors(prev=>({...prev,[f.key]:''}))}} placeholder={f.placeholder??`请输入${f.label}`}/>}
         {errors[f.key]&&<small className="field-error">{errors[f.key]}</small>}
