@@ -312,10 +312,11 @@ const healthDetailData:Record<string,BusinessDetail>=Object.fromEntries(healthAr
 const aiClinicDetailData:Record<string,BusinessDetail>=Object.fromEntries(aiClinicSessions.map((s,index)=>{
   const gastric=s.id==='AIQ-10031'
   const emergency=s.riskLevel==='紧急风险'
+  const multimodal=s.inputType==='图片'||s.inputType==='图文混合'
   const symptomId=`SYM-${String(s.id).slice(-5)}`
   const diagnosisId=String(s.diagnosisCreated).includes('AI初筛')?`DG-${String(s.id).slice(-5)}`:'—'
   const blocks:Record<string,DetailBlock[]>={
-    '会话概览':[info([['问诊会话ID',String(s.id)],['用户ID',String(s.userId)],['用户姓名',String(s.userName)],['健康主体ID',String(s.subjectId)],['主体姓名',String(s.subjectName)],['成员关系',String(s.relation)],['主诉',String(s.chiefComplaint)],['问诊状态',String(s.consultStatus)],['问诊进度',String(s.progress)],['追问轮次',Number(s.rounds)],['风险等级',String(s.riskLevel)],['推荐科室',String(s.department)],['创建时间',String(s.createdAt)],['最近更新时间',String(s.updatedAt)]],'会话身份与问诊进度'),...(emergency?[{type:'alert',tone:'danger',title:'紧急风险已触发',content:'已停止常规追问并输出急诊建议；系统记录风险规则、转人工状态和用户联系链路。'} as DetailBlock]:[])],
+    '会话概览':[info([['问诊会话ID',String(s.id)],['用户ID',String(s.userId)],['用户姓名',String(s.userName)],['健康主体ID',String(s.subjectId)],['主体姓名',String(s.subjectName)],['成员关系',String(s.relation)],['问诊类型',String(s.consultType)],['问诊模式',String(s.consultMode)],['输入类型',String(s.inputType)],['主诉',String(s.chiefComplaint)],['问诊状态',String(s.consultStatus)],['问诊进度',String(s.progress)],['追问轮次',Number(s.rounds)],['症状槽位完整度',String(s.slotCompleteness)],['缺失关键信息',String(s.missingInfo)],['信息是否足够',String(s.informationEnough)],['是否生成AI结论',String(s.conclusionGenerated)],['风险等级',String(s.riskLevel)],['推荐科室',String(s.department)],['创建时间',String(s.createdAt)],['最近更新时间',String(s.updatedAt)]],'会话身份、类型与问诊进度'),...(emergency?[{type:'alert',tone:'danger',title:'紧急风险已触发',content:'已停止常规追问并输出急诊建议；系统记录风险规则、转人工状态和用户联系链路。'} as DetailBlock]:[])],
     '多轮问诊记录':[{type:'timeline',items:gastric?[
       {time:'15:02:01',actor:'用户',title:'第1轮 · 用户输入',content:'胃不舒服（信息完整度 10%）'},
       {time:'15:02:04',actor:'AI诊室',title:'第2轮 · AI追问',content:'具体是胃部隐痛、胀气、烧心还是反酸？（信息完整度 20%）'},
@@ -330,6 +331,29 @@ const aiClinicDetailData:Record<string,BusinessDetail>=Object.fromEntries(aiClin
     '症状结构化':[
       info([['主诉',String(s.chiefComplaint)],['症状名称',gastric?'烧心、反酸、饭后胀':String(s.currentSymptoms)],['症状部位',gastric?'上腹部 / 胸骨后':'待结构化'],['症状性质',gastric?'烧灼感、餐后胀满':'根据多轮回答提取'],['持续时间',gastric?'2年，近期加重':'已采集'],['诱因',gastric?'进食后':'待补充'],['加重因素',gastric?'油腻饮食、过饱':'待补充'],['缓解因素',gastric?'暂未明确':'待补充'],['伴随症状',String(s.currentSymptoms)],['严重程度',String(s.riskLevel)],['信息完整度',String(s.progress)],['是否红旗症状',emergency?'是':gastric?'待排查':'否'],['关联症状记录ID',String(s.symptomCreated)==='已生成'?symptomId:'未生成']],'结构化症状摘要'),
       {type:'alert',tone:gastric?'warning':emergency?'danger':'info',title:'症状不是诊断',content:'本页仅记录用户主诉和结构化症状，不代表疾病诊断。AI 初步判断需经过医生确认。'}
+    ],
+    '多模态附件':multimodal?[
+      table(['附件ID','附件类型','图像场景','上传来源','无痕模式','原图保存状态','脱敏状态','自动删除时间'],[[
+        String(s.attachmentId??`ATT-${String(s.id).slice(-5)}`),'医学图像',String(s.imageScene??'问诊附件'),'支付宝医疗端',
+        String(s.traceless??'否'),String(s.originalStatus??'已加密保存'),String(s.privacyStatus??'已脱敏'),String(s.autoDeleteAt??'授权到期后自动删除')
+      ]]),
+      {type:'alert',tone:String(s.traceless)==='是'?'warning':'info',title:'附件使用边界',content:String(s.traceless)==='是'?'当前为无痕模式，原图不长期保存，仅保留必要审计记录。':'附件仅用于本次问诊分析，访问、脱敏和删除策略均已进入合规审计。'}
+    ]:[
+      {type:'alert',tone:'info',title:'当前会话无多模态附件',content:'本次问诊输入类型为文本或语音，没有上传皮肤、舌苔、脱发、药盒或报告图片。'}
+    ],
+    '图像分析结果':multimodal?[
+      info(String(s.imageScene)==='拍皮肤'?[
+        ['分析类型','皮肤图像 AI 初筛'],['皮损特征','手臂局部红斑伴轻度脱屑'],['红肿程度','轻度'],['是否渗出','否'],['识别置信度','88%'],['分析摘要','存在炎症性皮损倾向，建议结合接触史继续问诊'],['结果流转','已生成症状记录，未生成医生确认诊断']
+      ]:[
+        ['分析类型',String(s.imageScene)==='拍报告'?'报告图像识别':'多模态图像分析'],['识别结果',String(s.imageScene)==='拍报告'?'已识别报告类型和关键结论，流转报告解读管理':'已完成结构化特征提取'],['识别置信度','93%'],['分析摘要','图像结果仅作为问诊上下文，不等同于正式医学诊断'],['结果流转',String(s.imageScene)==='拍报告'?'报告解读管理':'症状记录 / 图像分析记录']
+      ],'多模态识别结果'),
+      {type:'alert',tone:'warning',title:'医学结论边界',content:'皮肤、舌苔和脱发分析只能作为 AI 初筛或倾向分析；若写入诊断记录，确认状态必须为“AI初筛 / 待医生确认”。'}
+    ]:[
+      {type:'alert',tone:'info',title:'无图像分析结果',content:'当前会话未调用医学图像识别模型。'}
+    ],
+    '隐私合规':[
+      info([['输入类型',String(s.inputType)],['附件访问授权',multimodal?'已授权本次问诊使用':'不适用'],['原图保存状态',String(s.originalStatus??'无原图')],['隐私脱敏状态',String(s.privacyStatus??'不适用')],['无痕模式',String(s.traceless??'否')],['自动删除时间',String(s.autoDeleteAt??'不适用')],['健康档案读取','按健康主体授权范围读取'],['跨主体隔离','已校验'],['审计结果','附件访问、模型调用、结论生成和入档操作均已留痕']],'数据授权、图像保护与审计'),
+      {type:'alert',tone:'info',title:'最小必要使用',content:'系统仅向当前问诊所需的模型和工具提供最小必要数据；拍报告流转报告解读，拍药盒流转用户药箱，图像问诊结果按用户确认决定是否入档。'}
     ],
     '风险规则命中':[
       info([['规则ID',emergency?'RULE-EMG-CHEST-001':`RULE-TRIAGE-${String(s.id).slice(-3)}`],['规则名称',String(s.rule)],['命中条件',String(s.currentSymptoms)],['风险等级',String(s.riskLevel)],['是否需要继续追问',String(s.consultStatus)==='待用户补充'?'是':'否'],['建议线下就医',s.riskLevel==='低风险'?'视症状变化':'是'],['建议急诊',emergency?'是':'否'],['处理状态',emergency?'已触发风险并转人工':'持续评估']],'规则判定结果')

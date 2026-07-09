@@ -227,12 +227,13 @@ pageConfigs.rules.fields = [
 ]
 pageConfigs.health.actions = ['查看档案','编辑','查看病历','查看报告','入档记录']
 pageConfigs.consults={
-  ...pageConfigs.consults,title:'AI 诊室 / 问诊会话管理',description:'管理 AI 医疗助手多轮问诊、症状采集、风险分级、导诊结论和数据入档全过程',
+  ...pageConfigs.consults,title:'AI问诊管理',description:'管理用户自由问诊、AI诊室多轮追问、图文问诊和问诊入档全过程',
   columns:[col('id','问诊会话ID'),col('userId','用户ID'),col('userName','用户姓名'),col('subjectId','健康主体ID'),col('subjectName','主体姓名'),col('relation','成员关系'),
+    col('consultType','问诊类型'),col('consultMode','问诊模式'),col('inputType','输入类型'),
     col('chiefComplaint','主诉'),col('currentSymptoms','当前症状'),col('progress','问诊进度'),col('rounds','追问轮次'),col('consultStatus','问诊状态',true),col('riskLevel','风险等级',true),
-    col('rule','命中规则'),col('department','推荐科室'),col('symptomCreated','症状记录',true),col('diagnosisCreated','诊断记录',true),col('archiveStatus','是否入档',true),
+    col('department','推荐科室'),col('symptomCreated','症状记录',true),col('diagnosisCreated','诊断记录',true),col('archiveStatus','是否入档',true),
     col('modelName','模型名称'),col('promptVersion','Prompt版本'),col('updatedAt','最近更新时间')],
-  rows:aiClinicSessions,filters:[{key:'consultStatus',label:'问诊状态',options:['全部','问诊中','待用户补充','信息已足够','已生成结论','已中断','已转人工','已触发风险']},{key:'riskLevel',label:'风险等级',options:['全部','低风险','中风险','高风险','紧急风险']},{key:'department',label:'推荐科室',options:['全部','消化内科','眼科','急诊科','心血管内科','皮肤科','呼吸内科']}],
+  rows:aiClinicSessions,filters:[{key:'consultType',label:'问诊类型',options:['全部','健康咨询','AI诊室','智能导诊','报告追问','用药咨询','图像问诊']},{key:'consultMode',label:'问诊模式',options:['全部','自由对话','结构化追问','多模态问诊','导诊问答','报告上下文问答']},{key:'inputType',label:'输入类型',options:['全部','文本','图片','语音','图文混合']},{key:'consultStatus',label:'问诊状态',options:['全部','问诊中','待用户补充','信息已足够','已生成结论','已回复','已中断','已转人工','已触发风险']},{key:'riskLevel',label:'风险等级',options:['全部','低风险','中风险','高风险','紧急风险']}],
   actions:['查看详情','查看症状记录','查看诊断记录','查看入档记录']
 }
 pageConfigs.symptoms={
@@ -258,7 +259,7 @@ export const menuGroups: { name: string; items: readonly (readonly [string, stri
   { name: '总览', items: [['dashboard','工作台']] },
   { name: '用户与档案', items: [['users','用户管理'],['family','家庭成员管理'],['health','健康档案管理']] },
   { name: '医疗数据', items: [['records','病历管理'],['reports','检查报告管理'],['diagnoses','诊断记录管理'],['symptoms','症状记录管理']] },
-  { name: 'AI 服务', items: [['consults','AI 诊室管理'],['camera','AI 智能相机管理'],['interpretation','报告解读管理'],['triage','智能导诊管理'],['agents','医生智能体管理']] },
+  { name: 'AI 服务', items: [['consults','AI问诊管理'],['interpretation','报告解读管理'],['triage','智能导诊管理'],['agents','医生智能体管理']] },
   { name: '医疗资源', items: [['hospitals','医院管理'],['departments','科室管理'],['doctors','医生管理'],['slots','号源管理'],['doctor-rules','医生推荐规则']] },
   { name: '知识与药品', items: [['medical-kb','医学知识库'],['drug-kb','药品知识库'],['medicine-box','用户药箱管理'],['med-plans','用药计划管理']] },
   { name: 'AI 配置', items: [['rules','规则中心'],['models','AI 模型配置'],['prompts','Prompt 管理'],['tools','工具调用配置']] },
