@@ -15,6 +15,8 @@ export interface Field {
   required?: boolean
   placeholder?: string
   readonly?: boolean
+  showWhen?: { key: string; values: string[] }
+  hint?: string
 }
 
 export interface PageConfig {

@@ -6,6 +6,7 @@ import { healthArchives } from './healthData'
 import { aiClinicSessions, diagnosisRecords, symptomRecords } from './aiClinicData'
 import { reportInterpretationTasks } from './reportInterpretationData'
 import { cameraTasks } from './cameraData'
+import { medicalRecords } from './medicalRecordData'
 
 const people = ['刘志辉', '陈雨桐', '周铭轩', '林婉清', '吴嘉诚', '赵欣怡', '孙建国', '高晓雯', '叶子航', '许安然']
 const hospitals = ['华中科技大学协和深圳医院', '北京大学深圳医院', '南方医科大学深圳医院', '深圳市第三人民医院']
@@ -67,15 +68,13 @@ export const specialConfigs: Record<string, PageConfig> = {
     actions:['查看档案','编辑','调整权限','停用/解除关系']
   },
   records: {
-    key: 'records', title: '病历管理', group: '医疗数据', description: '统一管理医院同步、用户上传与 AI 提取的病历',
-    primaryAction: '新增病历', columns: [col('id', '病历ID'), col('user', '用户'), col('subject', '档案主体'), col('hospital', '医院'), col('department', '科室'),
-      col('visitDate', '就诊时间'), col('name', '诊断'), col('source', '来源'), col('ocr', 'OCR状态', true), col('status', '审核状态', true)],
-    fields: [field('user','用户','select',people),field('subject','档案主体'),field('hospital','医院','select',hospitals),field('department','科室','select',['眼科','消化内科','心内科']),
-      field('visitDate','就诊时间','date'),field('complaint','主诉','textarea'),field('history','现病史','textarea'),field('name','诊断'),field('advice','处理意见','textarea'),field('attachment','附件图片','file')],
-    rows: generate('MR', ['干眼症、睑板腺功能障碍', '慢性胃炎、胆汁反流', '父亲高血压测试记录', '结膜炎'], i => ({
-      subject: i === 2 ? '测试父亲' : people[i%people.length], hospital: hospitals[i%4], department: ['眼科','消化内科','心内科'][i%3],
-      visitDate: dates[i%5].slice(0,10), source: ['医院同步','用户上传','OCR识别','AI提取'][i%4], ocr: i===2?'待确认':'已识别'
-    })), filters:[{key:'source',label:'来源',options:['全部','医院同步','用户上传','OCR识别','AI提取']}], actions:['查看','编辑','重新 OCR','同步 AI','人工审核','删除']
+    key: 'records', title: '病历管理', group: '医疗数据', description: '管理病历导入、OCR结构化、医学审核、AI检索与健康档案入档全过程',
+    primaryAction: '导入/补录病历', columns: [col('id','病历ID'),col('userId','用户ID'),col('userName','用户姓名'),col('subjectId','健康主体ID'),col('subjectName','主体姓名'),col('relation','成员关系'),col('archiveId','健康档案ID'),
+      col('hospital','医院'),col('department','科室'),col('visitType','就诊类型'),col('visitDate','就诊时间'),col('name','主要诊断'),col('source','病历来源'),
+      col('ocrStatus','OCR状态',true),col('structuredStatus','结构化状态',true),col('aiSearchStatus','AI检索状态',true),col('reviewStatus','审核状态',true),col('archiveStatus','入档状态',true),col('updatedAt','最近更新时间')],
+    fields:formSchemas.records,createFields:formSchemas.records,editFields:formSchemas.records,rows:medicalRecords,
+    filters:[{key:'source',label:'病历来源',options:['全部','医院同步','用户上传','在线授权拉取','后台补录','旧系统迁移']},{key:'visitType',label:'就诊类型',options:['全部','门诊','急诊','住院','复诊','体检']},{key:'ocrStatus',label:'OCR状态',options:['全部','不适用','待识别','识别中','已识别','识别失败','人工修正']},{key:'reviewStatus',label:'审核状态',options:['全部','待审核','复核中','已通过','已驳回']},{key:'archiveStatus',label:'入档状态',options:['全部','未入档','待入档','已入档','入档冲突','入档失败']}],
+    actions:['查看','编辑','重新OCR','同步AI','人工审核','删除/迁移申请']
   },
   reports: {
     key:'reports',title:'检查报告管理',group:'医疗数据',description:'报告上传、OCR 结构化、风险识别与 AI 解读全流程',

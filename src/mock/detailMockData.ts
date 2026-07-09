@@ -12,6 +12,7 @@ import { healthArchives } from './healthData'
 import { aiClinicSessions } from './aiClinicData'
 import { reportInterpretationTasks } from './reportInterpretationData'
 import { cameraTasks } from './cameraData'
+import { medicalRecords } from './medicalRecordData'
 
 export interface BusinessDetail {
   id:string
@@ -75,14 +76,57 @@ const healthDetail:BusinessDetail={id:'HEA-10021',name:'刘志辉健康档案',s
   '数据审计':[logs('健康档案')]
 }}
 
-const recordDetail:BusinessDetail={id:'MR10021',name:'眼科门诊病历',status:'已通过',user:'刘志辉',subject:'本人',tabs:{
-  '病历原文':[info([['病历ID','MR10021'],['用户','刘志辉'],['档案主体','本人'],['医院','华中科技大学协和深圳医院'],['科室','眼科门诊'],['就诊时间','2026-06-27 10:30'],['医生姓名','陈医生'],['病历来源','医院同步']]),{type:'text',title:'主诉',content:'双眼干涩、眼痒、异物感不适2年。'},{type:'text',title:'现病史',content:'双眼干涩、眼痒、异物感，无眼前黑影、视物变形、视力下降等。'},{type:'text',title:'体格检查',content:'双眼睑板腺开口可见分泌物堵塞，结膜充血，角膜透明，前房清，瞳孔圆约3×3mm，对光反射灵敏，晶体透明。'},{type:'text',title:'医生诊断',content:'干眼症（双眼）、睑板腺功能障碍（双眼）、结膜炎（双眼）。'},{type:'text',title:'处理意见',content:'聚乙二醇滴眼液、环孢素滴眼液、重组牛碱性成纤维细胞生长因子眼用凝胶；1月后复诊，不适随诊。'}],
-  '结构化字段':[table(['字段','结构化内容','来源','置信度'],[['主诉','双眼干涩、眼痒、异物感','病历原文','98%'],['诊断','干眼症；睑板腺功能障碍；结膜炎','医生诊断','99%'],['用药','聚乙二醇；环孢素；生长因子凝胶','处理意见','96%']])],
-  'AI可检索状态':[table(['内容区域','页面状态','AI检索状态'],[['主诉','页面可见','检索层不稳定'],['现病史','页面可见','检索层不稳定'],['体格检查','页面可见','检索层不稳定'],['结构化诊断','已结构化','可检索'],['结构化用药','已结构化','可检索']]),{type:'alert',tone:'warning',title:'检索层提示',content:'病历原文部分段落在 AI 检索层召回不稳定，回答时应优先引用结构化诊断和用药。'}],
-  '关联报告':[table(['报告ID','报告名称','日期','状态'],[['RP10021','泪液分泌功能测定报告','2026-06-27','已解读'],['RP10022','屈光检查报告','2026-06-27','待复核']])],
-  '关联诊断':[table(['诊断ID','诊断名称','确认状态'],[['DG10021','干眼症','医生确认'],['DG10022','睑板腺功能障碍','医生确认'],['DG10023','结膜炎','医生确认']])],
-  '操作日志':[logs('病历')]
-}}
+const medicalRecordDetailData:Record<string,BusinessDetail>=Object.fromEntries(medicalRecords.map((r,index)=>{
+  const eye=r.id==='MR10021'
+  const gastric=r.id==='MR10022'
+  const complaint=eye?'双眼干涩、眼痒、异物感':gastric?'上腹部不适、烧心':'就诊相关症状与随访需求'
+  const history=eye?'双眼干涩、眼痒、异物感2年，加重1周':gastric?'上腹部不适、烧心2年，近期饭后反酸加重':'症状持续时间及变化详见原始病历'
+  const physical=eye?'双眼睑板腺开口可见分泌物堵塞，结膜充血，角膜透明':gastric?'腹软，上腹部轻压痛，无反跳痛':'体格检查结果已完成结构化提取'
+  const advice=eye?'环孢素滴眼液、聚乙二醇滴眼液等；1个月后复诊':gastric?'按消化内科方案治疗，清淡饮食并定期复查':'遵医嘱治疗并按期复诊'
+  const attachment=String(r.attachment)==='—'?'未提供':String(r.attachment)
+  const tabs:Record<string,DetailBlock[]>={
+    '病历原文':[
+      info([['病历ID',String(r.id)],['用户ID',String(r.userId)],['用户姓名',String(r.userName)],['健康主体ID',String(r.subjectId)],['主体姓名',String(r.subjectName)],['成员关系',String(r.relation)],['健康档案ID',String(r.archiveId)],['医院',String(r.hospital)],['科室',String(r.department)],['就诊类型',String(r.visitType)],['就诊时间',String(r.visitDate)],['医生姓名',String(r.doctor)],['病历来源',String(r.source)],['原始附件',attachment]],'病历归属与来源'),
+      {type:'text',title:'OCR原文',content:String(r.ocrStatus)==='不适用'?'医院接口提供结构化原始数据，本任务不需要 OCR。':`${complaint}。${history}。${physical}。医生诊断：${r.name}。处理意见：${advice}。`},
+      {type:'text',title:'主诉',content:complaint},{type:'text',title:'现病史',content:history},{type:'text',title:'既往史',content:gastric?'既往慢性胃炎病史':'无特殊补充或详见原始附件'},
+      {type:'text',title:'体格检查',content:physical},{type:'text',title:'辅助检查',content:eye?'关联泪液分泌功能测定和屈光检查':'详见关联检查报告'},
+      {type:'text',title:'医生诊断',content:String(r.name)},{type:'text',title:'处理意见',content:advice},
+      ...(String(r.source)==='后台补录'&&attachment==='未提供'?[{type:'alert',tone:'danger',title:'缺少原始病历凭证',content:'该病历为后台补录且未提供原始附件，医学运营复核通过前禁止入档或进入 AI 检索索引。'} as DetailBlock]:[])
+    ],
+    '结构化字段':[
+      table(['字段名称','结构化内容','来源区域','置信度','人工修正','是否入档','操作'],[
+        ['主诉',complaint,'病历原文 / 主诉',eye?'98%':'94%','否',String(r.archiveStatus),'查看原文'],
+        ['现病史',history,'病历原文 / 现病史','95%','否',String(r.archiveStatus),'查看原文'],
+        ['体格检查',physical,'病历原文 / 体格检查','93%',String(r.ocrStatus)==='人工修正'?'是':'否',String(r.archiveStatus),'复核'],
+        ['医生诊断',String(r.name),'病历原文 / 医生诊断','99%','否',String(r.archiveStatus),'查看诊断'],
+        ['处理意见',advice,'病历原文 / 处理意见','96%','否',String(r.archiveStatus),'查看用药']
+      ])
+    ],
+    'AI可检索状态':[
+      info([['是否允许AI读取',String(r.aiSearchStatus)==='不允许检索'?'否':'是'],['是否进入向量索引',String(r.aiSearchStatus)==='已入索引'?'是':'否'],['索引状态',String(r.aiSearchStatus)],['分段数量',String(r.aiSearchStatus)==='已入索引'?12+index:'0'],['可检索字段','结构化诊断、结构化用药、经复核的就诊摘要'],['不可检索字段','身份证号、联系方式、未复核的补录内容'],['最近索引时间',String(r.aiSearchStatus)==='已入索引'?String(r.updatedAt):'—'],['Embedding模型','Medical Embedding V3'],['可读取场景','AI问诊 / 报告解读 / 智能导诊 / 用药提醒']],'索引权限与范围'),
+      {type:'alert',tone:'warning',title:'检索提示',content:'主诉、现病史、体格检查属于原文内容，检索稳定性较低；结构化诊断、结构化用药属于稳定字段，可优先被 AI 引用。'}
+    ],
+    '关联报告':[table(['报告ID','报告名称','报告类型','检查日期','OCR状态','AI解读状态','医学复核状态','入档状态','操作'],eye?[
+      ['RP10021','泪液分泌功能测定报告','眼科检查','2026-06-27','已完成','已解读','待复核','已入档','查看报告'],
+      ['RP10022','屈光检查报告','屈光检查','2026-06-27','已完成','已解读','待复核','已入档','查看报告']
+    ]:[['RP'+String(10020+index),`${r.department}关联检查报告`,'检查报告',String(r.visitDate).slice(0,10),'已完成','已解读',String(r.reviewStatus),String(r.archiveStatus),'查看报告']])],
+    '关联诊断':[table(['诊断ID','诊断名称','诊断来源','来源病历ID','确认状态','当前状态','纳入AI上下文','操作'],String(r.name).split('、').map((name,i)=>[
+      `DG${String(r.id).slice(2)}-${i+1}`,name,'医生病历',String(r.id),String(r.reviewStatus)==='已通过'?'医生确认':'待医生确认','现患',String(r.aiSearchStatus)==='已入索引'?'是':'限制纳入','查看诊断'
+    ]))],
+    '操作日志':[{type:'timeline',items:[
+      {time:String(r.visitDate),actor:String(r.source),title:'获取病历原始数据',content:`来源端：${r.source} · 操作对象：${r.id} · 权限校验通过`},
+      {time:String(r.updatedAt),actor:'OCR服务',title:'OCR识别流程',content:`状态：${r.ocrStatus} · 系统服务 · 审计结果：已记录`},
+      {time:String(r.updatedAt),actor:'结构化引擎',title:'AI结构化提取完成',content:`状态：${r.structuredStatus} · 操作对象：${r.id}`},
+      {time:String(r.updatedAt),actor:'医学运营',title:'医学审核',content:`审核状态：${r.reviewStatus} · Web管理端 · IP 10.24.16.8`},
+      {time:String(r.updatedAt),actor:'健康档案服务',title:'执行入档策略',content:`目标档案：${r.archiveId} · 入档状态：${r.archiveStatus}`},
+      {time:String(r.updatedAt),actor:'诊断记录服务',title:'生成关联诊断记录',content:'医生诊断与 AI 初筛确认状态已区分'},
+      {time:String(r.updatedAt),actor:'检索索引服务',title:'建立AI检索索引',content:`索引状态：${r.aiSearchStatus} · 权限校验通过`},
+      {time:'2026-07-09 10:24',actor:'医学运营管理员',title:'查看病历详情',content:`Web管理端 · IP 10.24.16.8 · 操作对象：${r.id} · 审计通过`},
+      {time:'待申请',actor:'管理员',title:'删除/迁移申请入口',content:'敏感医疗数据不可硬删除，必须评估影响并进入审批流程'}
+    ]}]
+  }
+  return [String(r.id),{...r,name:String(r.name),status:String(r.reviewStatus),tabs} as BusinessDetail]
+}))
 
 const reportDetail:BusinessDetail={id:'RP10021',name:'泪液分泌功能测定报告',status:'已结构化 / 已解读',user:'刘志辉',subject:'本人',ocr:'成功',structured:'已结构化',ai:'已解读',tabs:{
   '报告概览':[info([['报告ID','RP10021'],['报告名称','泪液分泌功能测定报告'],['报告类型','眼科检查'],['用户','刘志辉'],['档案主体','本人'],['医院','华中科技大学协和深圳医院'],['科室','眼科门诊'],['报告日期','2026-06-27'],['OCR状态','成功'],['结构化状态','已结构化'],['AI解读状态','已解读'],['异常摘要','BUT 双眼明显缩短，Schirmer 左眼偏低'],['是否高风险','否'],['上传来源','医院同步']])],
@@ -510,7 +554,7 @@ const cameraDetailData:Record<string,BusinessDetail>=Object.fromEntries(cameraTa
 export const detailMockData:Record<string,Record<string,BusinessDetail>>={
   users:{U10021:userDetail},
   health:healthDetailData,
-  records:{MR10021:recordDetail,'MR-10021':recordDetail},
+  records:medicalRecordDetailData,
   reports:{RP10021:reportDetail,'RP-10021':reportDetail},
   consults:aiClinicDetailData,
   triage:{'TRI-10021':triageDetail},

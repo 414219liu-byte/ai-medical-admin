@@ -61,6 +61,13 @@ export default function GenericPage({config,onNavigate,onToast}:{config:PageConf
       if(a==='查看报告'){onNavigate('reports');return}
       if(a==='入档记录'){onNavigate('archive');return}
     }
+    if(config.key==='records'){
+      if(a==='查看'){setDetailTab('病历原文');setDetail(row);return}
+      if(a==='删除/迁移申请'){onNavigate('requests');return}
+      if(a==='重新OCR'){onToast(`病历 ${row.id} 已提交 OCR 重识别，操作已写入审计日志`);return}
+      if(a==='同步AI'){onToast(`病历 ${row.id} 已提交 AI 索引同步，操作已写入审计日志`);return}
+      if(a==='人工审核'){onToast(`病历 ${row.id} 已进入医学运营复核队列`);return}
+    }
     if(/查看|关联|原图|预览|说明书/.test(a)){setDetailTab(undefined);setDetail(row);return}
     if(a.includes('编辑')){setEditing(row);return}
     if(a.includes('删除')){setDeleteRow(row);return}
@@ -91,7 +98,7 @@ export default function GenericPage({config,onNavigate,onToast}:{config:PageConf
       actionsForRow={config.key==='camera'?(row=>row.traceless==='是'?['查看审计','查看脱敏结果','查看分析摘要']:(config.actions??[])):undefined}
       selected={selected} onSelected={setSelected} onAction={action}/>
     <BusinessDetailDrawer row={detail} pageKey={config.key} initialTab={detailTab} onClose={()=>setDetail(null)} onNavigate={k=>{setDetail(null);onNavigate(k)}} onToast={onToast}/>
-    <EditModal open={editing!==undefined} title={`${editing?'编辑':'新增'}${config.title.replace('管理','')}`} fields={editing?(config.editFields??config.fields):(config.createFields??config.fields)} initial={editing} onClose={()=>setEditing(undefined)} onSave={save}/>
+    <EditModal open={editing!==undefined} title={editing?`编辑${config.title.replace('管理','')}`:(config.primaryAction??`新增${config.title.replace('管理','')}`)} fields={editing?(config.editFields??config.fields):(config.createFields??config.fields)} initial={editing} onClose={()=>setEditing(undefined)} onSave={save}/>
     <ConfirmDialog open={!!deleteRow} name={String(deleteRow?.name??'')} onClose={()=>setDeleteRow(null)} onConfirm={()=>{setRows(x=>x.filter(r=>r.id!==deleteRow?.id));setDeleteRow(null);onToast('记录已删除')}}/>
     <ExportComplianceDialog open={exportOpen} count={shown.length} onClose={()=>setExportOpen(false)} onConfirm={()=>{setExportOpen(false);onToast(`已导出 ${shown.length} 条脱敏记录，审计日志已生成`)}}/>
   </>
