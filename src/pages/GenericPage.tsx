@@ -19,7 +19,7 @@ export default function GenericPage({config,onNavigate,onToast}:{config:PageConf
     const matches=!keyword||Object.values(r).some(v=>String(v).toLowerCase().includes(keyword.toLowerCase()))
     const rowDate=String(r.updatedAt??r.date??r.reportDate??'').slice(0,10)
     const dateMatch=(!date||rowDate>=date)&&(!endDate||rowDate<=endDate)
-    const extras=(config.filters??[]).slice(1).every(item=>(extraValues[item.key]??'全部')==='全部'||String(r[item.key])===extraValues[item.key])
+    const extras=(config.filters??[]).slice(1).every(item=>(extraValues[item.key]??'全部')==='全部'||String(r[item.key]).includes(extraValues[item.key]))
     return matches&&dateMatch&&extras&&(filter==='全部'||String(r[filterCfg.key])===filter)&&(status==='全部'||String(r.status)===status)
   }),[rows,keyword,filter,status,date,endDate,extraValues,filterCfg.key,config.filters])
   const action=(a:string,row:RowData)=>{

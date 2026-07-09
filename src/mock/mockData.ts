@@ -1,5 +1,6 @@
 import type { Column, Field, PageConfig, RowData } from '../types'
 import { createRecordFor, formSchemas } from './formSchemas'
+import { userProfiles } from './userData'
 
 const people = ['刘志辉', '陈雨桐', '周铭轩', '林婉清', '吴嘉诚', '赵欣怡', '孙建国', '高晓雯', '叶子航', '许安然']
 const hospitals = ['华中科技大学协和深圳医院', '北京大学深圳医院', '南方医科大学深圳医院', '深圳市第三人民医院']
@@ -34,23 +35,18 @@ const makePage = (
   actions
 })
 
-export const userRows = generate('U', people, i => ({
-  name: people[i], phone: `138****${String(6210 + i)}`, gender: i % 3 === 0 ? '女' : '男',
-  age: 24 + i * 4, city: ['深圳', '上海', '杭州', '北京'][i % 4], source: ['支付宝', '微信', '医院服务窗'][i % 3],
-  subjects: 1 + i % 4, consults: 3 + i * 7, reports: i + 1, risk: i === 6 ? '高血压关注' : i === 3 ? '过敏体质' : '低风险',
-  status: i === 7 ? '已禁用' : '正常', updatedAt: dates[i % dates.length]
-}), 10)
+export const userRows:RowData[]=userProfiles.map(user=>({...user}))
 
 export const specialConfigs: Record<string, PageConfig> = {
   users: {
     key: 'users', title: '用户管理', group: '用户与档案', description: '管理平台注册用户、健康主体及账号风险状态',
     primaryAction: '新增用户', columns: [col('id', '用户ID'), col('name', '姓名/昵称'), col('phone', '手机号'), col('gender', '性别'),
       col('age', '年龄'), col('city', '城市'), col('source', '注册来源'), col('subjects', '健康主体'), col('consults', '问诊次数'),
-      col('reports', '报告数'), col('risk', '风险标签', true), col('status', '账号状态', true)],
+      col('reports', '报告数'), col('risk', '风险标签', true), col('status', '账号状态', true),col('lastLogin','最近登录时间')],
     fields: [field('name', '姓名', 'text'), field('nickname', '昵称'), field('phone', '手机号'), field('gender', '性别', 'select', ['男', '女']),
       field('birthday', '出生日期', 'date'), field('city', '所在城市', 'select', ['深圳', '上海', '杭州', '北京']),
       field('source', '注册来源', 'select', ['支付宝', '微信', '医院服务窗']), field('status', '账号状态', 'select', ['正常', '禁用']), field('remark', '备注', 'textarea')],
-    rows: userRows, filters: [{ key: 'city', label: '城市', options: ['全部', '深圳', '上海', '杭州', '北京'] }, { key: 'status', label: '账号状态', options: ['全部', '正常', '已禁用'] }],
+    rows: userRows, filters: [{ key: 'city', label: '城市', options: ['全部','深圳南山','深圳福田','深圳宝安','深圳龙岗','惠州大亚湾','广州天河'] }, { key: 'status', label: '账号状态', options: ['全部','正常','待完善','禁用'] },{key:'risk',label:'风险标签',options:['全部','低风险','干眼复诊','胃病随访','高血压关注','测试记录待清理','投诉用户']}],
     actions: ['查看详情', '编辑', '查看档案', '禁用账号']
   },
   family: {
@@ -226,13 +222,13 @@ export const dashboardStats = [
 export const riskRows = generate('WARN-', ['父亲胸痛代问','高血压伴头晕','持续右上腹痛','儿童高热'], i => ({
   user: people[i], subject: i<2?'测试父亲':people[i], symptom:['胸痛、冷汗、左臂酸','血压185/118、头晕','右上腹持续疼痛','高热39.8℃'][i%4],
   risk: i<2?'高风险':'中风险', rule:['胸痛急症规则','高血压急症规则','腹痛风险规则','儿童高热规则'][i%4],
-  advice:i<2?'立即呼叫120':'建议尽快就医', contacted:i===0?'否':'是', status:i===0?'待处理':'处理中', updatedAt:dates[i]
+  sessionId:`AI${10022+i}`,advice:i<2?'立即呼叫120':'建议尽快就医', contacted:['未联系','已联系','无需联系','联系失败'][i%4], status:i===0?'待处理':'处理中', updatedAt:dates[i]
 }), 4)
 
 export const taskRows = generate('TASK-', ['OU字段医学复核','高风险会话审核','医生资质审核','药箱识别反馈'], i => ({
   type:['医学复核','急症审核','资质审核','用户反馈'][i%4], source:['报告解读','AI问诊','医生管理','用户药箱'][i%4],
   object:['RP10021','AI10022','DR10023','FB10024'][i%4], priority:i<2?'紧急':'普通', owner:i%2?'王医生':'待领取',
-  sla:`${18+i*16} 分钟`, status:i===0?'待处理':'处理中'
+  sla:`${18+i*16} 分钟`,deadline:['2026-07-09 10:42','2026-07-09 11:05','2026-07-09 12:30','2026-07-09 14:00'][i%4],status:i===0?'待处理':'处理中'
 }), 4)
 
 export const monitorCards = [

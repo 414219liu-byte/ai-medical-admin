@@ -13,7 +13,7 @@ export default function BusinessDetailDrawer({row,pageKey,initialTab,onClose,onN
   if(!row||!detail)return null
   const tab=config.tabs[active]??config.tabs[0]
   const blocks=detail.tabs[tab]??fallbackTab(pageKey,row,tab)
-  const statusValues=config.statusFields.map(k=>String(detail[k]??row[k]??'')).filter(Boolean)
+  const statusValues=config.statusFields.flatMap(k=>String(detail[k]??row[k]??'').split(/[、,，]/)).filter(Boolean)
   return <div className="drawer-wrap" onMouseDown={e=>e.target===e.currentTarget&&onClose()}>
     <aside className="drawer business-drawer">
       <header className="business-drawer-head">
@@ -37,7 +37,7 @@ export default function BusinessDetailDrawer({row,pageKey,initialTab,onClose,onN
 function BlockList({blocks,onNavigate}:{blocks:DetailBlock[];onNavigate:(key:string)=>void}){
   return <div className="detail-blocks">{blocks.map((block,index)=>{
     if(block.type==='info')return <section className="info-section" key={index}>{block.title&&<h3>{block.title}</h3>}<div className="business-info-grid">{block.items.map(([label,value])=><div key={label}><span>{label}</span><strong>{String(value)}</strong></div>)}</div></section>
-    if(block.type==='table')return <section className="related-section" key={index}><div className="business-table"><table><thead><tr>{block.columns.map(x=><th key={x}>{x}</th>)}<th>操作</th></tr></thead><tbody>{block.rows.map((cells,i)=><tr key={i}>{cells.map((cell,j)=><td key={j}>{isStatus(String(cell))?<StatusTag value={cell}/>:String(cell)}</td>)}<td><button onClick={()=>navigateById(String(cells[0]),onNavigate)}>查看</button></td></tr>)}</tbody></table></div></section>
+    if(block.type==='table')return <section className="related-section" key={index}><div className="business-table"><table><thead><tr>{block.columns.map(x=><th key={x}>{x}</th>)}<th>操作</th></tr></thead><tbody>{block.rows.map((cells,i)=><tr key={i}>{cells.map((cell,j)=><td key={j}>{isStatus(String(cell))?<StatusTag value={cell}/>:String(cell)}</td>)}<td><div className="detail-row-actions">{rowActions(String(cells[0])).map(label=><button key={label} onClick={()=>navigateByAction(label,String(cells[0]),onNavigate)}>{label}</button>)}</div></td></tr>)}</tbody></table></div></section>
     if(block.type==='timeline')return <section className="business-timeline" key={index}>{block.items.map((item,i)=><div key={i}><i/><time>{item.time}</time><h4>{item.title}<span>{item.actor}</span></h4><p>{item.content}</p><small>IP 10.24.16.{8+i} · Web 管理端</small></div>)}</section>
     if(block.type==='conversation')return <section className="conversation business-conversation" key={index}>{block.messages.map((message,i)=><div key={i} className={message.role==='user'?'user-msg':`ai-msg ${message.role==='warning'?'warning':''}`}><b>{message.name}</b><p>{message.content}</p>{message.time&&<small>{message.time}</small>}</div>)}</section>
     if(block.type==='alert')return <section className={`risk-alert ${block.tone}`} key={index}>{block.tone==='danger'?<ShieldAlert/>:<Activity/>}<div><h3>{block.title}</h3><p>{block.content}</p></div></section>
@@ -88,5 +88,22 @@ function navigateById(id:string,onNavigate:(key:string)=>void){
   else if(id.startsWith('DG'))onNavigate('diagnoses')
   else if(id.startsWith('RULE'))onNavigate('rules')
   else if(id.startsWith('COR'))onNavigate('corrections')
+}
+function rowActions(id:string){
+  if(id.startsWith('HEA'))return ['查看档案','查看报告','查看问诊']
+  if(id.startsWith('AI'))return ['查看会话','查看入档记录','查看命中规则']
+  if(id.startsWith('RP'))return ['查看报告','查看OCR','查看解读']
+  if(id.startsWith('COR'))return ['查看纠错']
+  return ['查看']
+}
+function navigateByAction(label:string,id:string,onNavigate:(key:string)=>void){
+  if(label.includes('档案'))onNavigate('health')
+  else if(label.includes('问诊')||label.includes('会话'))onNavigate('consults')
+  else if(label.includes('入档'))onNavigate('archive')
+  else if(label.includes('规则'))onNavigate('rules')
+  else if(label.includes('报告')||label.includes('OCR'))onNavigate('reports')
+  else if(label.includes('解读'))onNavigate('interpretation')
+  else if(label.includes('纠错'))onNavigate('corrections')
+  else navigateById(id,onNavigate)
 }
 function isStatus(value:string){return /正常|异常|风险|完成|通过|待|可读取|不可读取|启用|上线|关闭|缺失|成功|否|是$/.test(value)}
