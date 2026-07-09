@@ -20,14 +20,14 @@ export const detailConfigs:Record<string,DetailConfig>={
   reports:{...standard('检查报告管理'),subtitle:d=>`报告编号：${d.id}｜${d.user??''} / ${d.subject??''}`,statusFields:['ocr','structured','ai'],tabs:['报告概览','报告原图 / OCR文本','结构化字段','AI解读','医学复核','关联问诊','操作日志'],actions:[{label:'查看AI解读',route:'interpretation',tone:'primary'},{label:'提交复核'}]},
   diagnoses:standard('诊断记录管理',['诊断概览','来源病历','关联报告','状态变更','操作日志']),
   symptoms:standard('症状记录管理',['症状概览','来源对话','入档记录','风险研判','操作日志']),
-  consults:{...standard('AI问诊管理'),subtitle:d=>`会话编号：${d.id}｜咨询主体：${d.subject??'—'}`,statusFields:['risk','status'],tabs:['会话概览','完整对话','AI追问过程','健康档案引用','急症规则命中','导诊与服务卡','入档结果','质检记录','操作日志'],actions:[{label:'查看入档记录',route:'archive',tone:'primary'},{label:'查看命中规则',route:'rules'},{label:'生成摘要'}]},
+  consults:{...standard('AI诊室 / 问诊会话管理'),subtitle:d=>`会话编号：${d.id}｜用户：${d.userName} ${d.userId}｜健康主体：${d.subjectName} ${d.subjectId}`,statusFields:['consultStatus','riskLevel','archiveStatus'],tabs:['会话概览','多轮问诊记录','症状结构化','风险规则命中','AI结论与导诊','模型与工具调用','数据入档与审计'],actions:[{label:'查看症状记录',route:'symptoms'},{label:'查看入档记录',route:'archive',tone:'primary'},{label:'查看命中规则',route:'rules'}]},
   interpretation:{
     ...standard('报告解读管理'),
     titleField:'name',
-    subtitle:d=>`报告编号：${d.reportId}｜用户：${d.userName} ${d.userId}｜档案主体：${d.subject}`,
-    statusFields:['ocr','structured','ai','review'],
-    tabs:['任务概览','OCR文本','结构化字段','AI解读内容','医学复核','关联问诊','纠错记录','操作日志'],
-    actions:[{label:'查看原报告',route:'reports'},{label:'提交复核',tone:'primary'}]
+    subtitle:d=>`报告编号：${d.reportId}｜用户：${d.userName} ${d.userId}｜健康主体：${d.subjectName} ${d.subjectId} / ${d.relation}`,
+    statusFields:['ocrStatus','structuredStatus','aiStatus','riskLevel','reviewStatus','archiveStatus'],
+    tabs:['任务概览','原始报告','OCR结果','结构化字段','AI解读结果','风险评估','健康建议','医学复核','入档记录','模型与Prompt','操作日志'],
+    actions:[{label:'查看检查报告',route:'reports'},{label:'查看健康档案',route:'health'},{label:'查看用户反馈',route:'feedback'},{label:'提交医学复核',tone:'primary'}]
   },
   triage:standard('智能导诊管理',['导诊概览','症状采集','规则命中','推荐科室','推荐检查','挂号转化','操作日志']),
   hospitals:standard('医院管理',['基础信息','科室列表','医生列表','号源能力','服务接入','操作日志']),

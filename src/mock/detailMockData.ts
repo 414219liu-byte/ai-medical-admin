@@ -9,6 +9,8 @@ export type DetailBlock =
 import { userProfiles } from './userData'
 import { familyMembers } from './familyData'
 import { healthArchives } from './healthData'
+import { aiClinicSessions } from './aiClinicData'
+import { reportInterpretationTasks } from './reportInterpretationData'
 
 export interface BusinessDetail {
   id:string
@@ -306,12 +308,128 @@ const healthDetailData:Record<string,BusinessDetail>=Object.fromEntries(healthAr
   return [h.id,{...h,id:h.id,name:h.name,status:h.archiveStatus,tabs} as BusinessDetail]
 }))
 
+const aiClinicDetailData:Record<string,BusinessDetail>=Object.fromEntries(aiClinicSessions.map((s,index)=>{
+  const gastric=s.id==='AIQ-10031'
+  const emergency=s.riskLevel==='紧急风险'
+  const symptomId=`SYM-${String(s.id).slice(-5)}`
+  const diagnosisId=String(s.diagnosisCreated).includes('AI初筛')?`DG-${String(s.id).slice(-5)}`:'—'
+  const blocks:Record<string,DetailBlock[]>={
+    '会话概览':[info([['问诊会话ID',String(s.id)],['用户ID',String(s.userId)],['用户姓名',String(s.userName)],['健康主体ID',String(s.subjectId)],['主体姓名',String(s.subjectName)],['成员关系',String(s.relation)],['主诉',String(s.chiefComplaint)],['问诊状态',String(s.consultStatus)],['问诊进度',String(s.progress)],['追问轮次',Number(s.rounds)],['风险等级',String(s.riskLevel)],['推荐科室',String(s.department)],['创建时间',String(s.createdAt)],['最近更新时间',String(s.updatedAt)]],'会话身份与问诊进度'),...(emergency?[{type:'alert',tone:'danger',title:'紧急风险已触发',content:'已停止常规追问并输出急诊建议；系统记录风险规则、转人工状态和用户联系链路。'} as DetailBlock]:[])],
+    '多轮问诊记录':[{type:'timeline',items:gastric?[
+      {time:'15:02:01',actor:'用户',title:'第1轮 · 用户输入',content:'胃不舒服（信息完整度 10%）'},
+      {time:'15:02:04',actor:'AI诊室',title:'第2轮 · AI追问',content:'具体是胃部隐痛、胀气、烧心还是反酸？（信息完整度 20%）'},
+      {time:'15:03:12',actor:'用户',title:'第3轮 · 用户回答',content:'烧心，还有点反酸，吃完饭容易胀（信息完整度 40%）'},
+      {time:'15:03:15',actor:'AI诊室',title:'第4轮 · AI追问',content:'这种烧心从什么时候开始？是持续存在还是逐渐加重？是否有黑便、呕血或体重下降？'},
+      {time:'15:03:16',actor:'问诊编排器',title:'信息充分性判断',content:'当前完整度 40%，消化道红旗症状尚未排查完成，状态设为待用户补充'}
+    ]:[
+      {time:String(s.createdAt),actor:'用户',title:'第1轮 · 提交主诉',content:String(s.chiefComplaint)},
+      {time:String(s.updatedAt),actor:'AI诊室',title:`第${s.rounds}轮 · 症状采集`,content:`已采集：${s.currentSymptoms}；当前信息完整度 ${s.progress}`},
+      {time:String(s.updatedAt),actor:'问诊编排器',title:'信息充分性判断',content:`问诊状态：${s.consultStatus}；风险等级：${s.riskLevel}`}
+    ]}],
+    '症状结构化':[
+      info([['主诉',String(s.chiefComplaint)],['症状名称',gastric?'烧心、反酸、饭后胀':String(s.currentSymptoms)],['症状部位',gastric?'上腹部 / 胸骨后':'待结构化'],['症状性质',gastric?'烧灼感、餐后胀满':'根据多轮回答提取'],['持续时间',gastric?'2年，近期加重':'已采集'],['诱因',gastric?'进食后':'待补充'],['加重因素',gastric?'油腻饮食、过饱':'待补充'],['缓解因素',gastric?'暂未明确':'待补充'],['伴随症状',String(s.currentSymptoms)],['严重程度',String(s.riskLevel)],['信息完整度',String(s.progress)],['是否红旗症状',emergency?'是':gastric?'待排查':'否'],['关联症状记录ID',String(s.symptomCreated)==='已生成'?symptomId:'未生成']],'结构化症状摘要'),
+      {type:'alert',tone:gastric?'warning':emergency?'danger':'info',title:'症状不是诊断',content:'本页仅记录用户主诉和结构化症状，不代表疾病诊断。AI 初步判断需经过医生确认。'}
+    ],
+    '风险规则命中':[
+      info([['规则ID',emergency?'RULE-EMG-CHEST-001':`RULE-TRIAGE-${String(s.id).slice(-3)}`],['规则名称',String(s.rule)],['命中条件',String(s.currentSymptoms)],['风险等级',String(s.riskLevel)],['是否需要继续追问',String(s.consultStatus)==='待用户补充'?'是':'否'],['建议线下就医',s.riskLevel==='低风险'?'视症状变化':'是'],['建议急诊',emergency?'是':'否'],['处理状态',emergency?'已触发风险并转人工':'持续评估']],'规则判定结果')
+    ],
+    'AI结论与导诊':[
+      info([['AI初步判断',gastric?'胃食管反流或慢性胃炎方向，仍需完成红旗症状排查':`${s.currentSymptoms}相关疾病方向，需结合面诊确认`],['置信度',gastric?'62%':`${70+index*2}%`],['推荐科室',String(s.department)],['就医建议',emergency?'立即前往急诊或拨打120':s.riskLevel==='高风险'?'尽快线下就医':'建议门诊评估'],['居家观察建议',emergency?'不建议居家观察':'记录症状变化，避免已知诱因'],['免责声明','AI输出仅用于健康信息参考，不能替代医生诊断和处方'],['生成导诊记录','是'],['生成诊断记录',String(s.diagnosisCreated)],['是否入档',String(s.archiveStatus)]],'初步判断与服务建议'),
+      ...(String(s.diagnosisCreated).includes('AI初筛')?[{type:'alert',tone:'warning',title:'诊断确认边界',content:`诊断记录 ${diagnosisId} 的来源为 AI初筛，确认状态必须保持“待医生确认”，不得标记为医生诊断。`} as DetailBlock]:[])
+    ],
+    '模型与工具调用':[
+      info([['模型名称',String(s.modelName)],['模型版本',String(s.modelName)==='deepseek-chat'?'DeepSeek V3.1':'MedGPT-4.1-202607'],['Prompt版本',String(s.promptVersion)],['工具调用次数',gastric?4:3],['读取健康档案','是，已记录授权范围'],['读取历史病历',gastric?'是，读取消化内科病历摘要':'按授权范围读取'],['调用导诊规则','是'],['调用药品知识库','否'],['输出审核状态',emergency?'安全策略已拦截':'自动审核通过']],'模型编排与工具权限'),
+      {type:'ai',model:String(s.modelName),tool:'健康档案检索 / 症状结构化 / 风险规则 / 智能导诊',duration:gastric?'2.18s':'1.64s',input:`用户主诉：${s.chiefComplaint}；多轮症状：${s.currentSymptoms}`,output:`信息完整度 ${s.progress}，风险等级 ${s.riskLevel}，推荐科室 ${s.department}`}
+    ],
+    '数据入档与审计':[
+      info([['生成症状记录',String(s.symptomCreated)],['症状记录ID',String(s.symptomCreated)==='已生成'?symptomId:'—'],['生成诊断记录',String(s.diagnosisCreated)],['诊断记录ID',diagnosisId],['写入健康档案',String(s.archiveStatus)==='已入档'?'是':'否'],['入档状态',String(s.archiveStatus)],['人工复核状态',String(s.archiveStatus).includes('人工')?'待复核':'无需复核 / 自动校验'],['审计结果','模型读取、风险判定、结论生成和入档动作均已留痕']],'入档对象与状态'),
+      {type:'timeline',items:[
+        {time:String(s.createdAt),actor:'AI诊室',title:'创建问诊会话',content:`创建 ${s.id} 并绑定健康主体 ${s.subjectId}`},
+        {time:String(s.updatedAt),actor:'症状结构化服务',title:'生成症状记录',content:`${s.symptomCreated}；关联ID ${symptomId}`},
+        {time:String(s.updatedAt),actor:'风险规则引擎',title:'完成风险分级',content:`命中 ${s.rule}，风险等级 ${s.riskLevel}`},
+        {time:String(s.updatedAt),actor:'AI结论服务',title:'生成初步判断',content:'输出已附带禁止诊断免责声明'},
+        {time:String(s.updatedAt),actor:'数据入档服务',title:'执行入档策略',content:`当前状态：${s.archiveStatus}`}
+      ]}
+    ]
+  }
+  return [String(s.id),{...s,name:String(s.name),tabs:blocks} as BusinessDetail]
+}))
+
+const reportTaskDetailData:Record<string,BusinessDetail>=Object.fromEntries(reportInterpretationTasks.map((r,index)=>{
+  const tear=r.id==='INT-10021'
+  const online=r.uploadMethod==='在线查报告'
+  const taskOverview:DetailBlock[]=[
+    info([['解读任务ID',String(r.id)],['报告ID',String(r.reportId)],['用户ID',String(r.userId)],['用户姓名',String(r.userName)],['健康主体ID',String(r.subjectId)],['主体姓名',String(r.subjectName)],['成员关系',String(r.relation)],['上传方式',String(r.uploadMethod)],['数据来源',String(r.dataSource)],['报告类型',String(r.reportType)],['医院',String(r.hospital)],['科室',String(r.department)],['检查日期',String(r.examDate)],['当前状态',`${r.ocrStatus} / ${r.structuredStatus} / ${r.aiStatus}`],['风险等级',String(r.riskLevel)],['创建时间',String(r.createdAt)],['最近更新时间',String(r.updatedAt)]],'任务、报告与健康主体'),
+    {type:'alert',tone:'info',title:'报告归属确认',content:`该报告归属 ${r.subjectName} / ${r.relation}（健康主体 ${r.subjectId}）。结构化字段、解读结果和入档数据必须绑定该主体。`}
+  ]
+  if(online)taskOverview.push(info([['授权状态',String(r.authStatus??'已授权')],['拉取时间范围',String(r.pullRange??'近12个月')],['拉取报告数量',Number(r.pullCount??0)],['拉取状态',String(r.pullStatus??'成功')],['最近拉取时间',String(r.lastPullTime??r.createdAt)],['接口返回状态',String(r.apiStatus??'200 OK')],['数据脱敏状态',String(r.maskingStatus??'已脱敏')]],'深圳在线查报告'))
+  const structure=tear?interpretationDetail.tabs['结构化字段']:[table(['字段ID','字段名称','原文内容','结构化值','单位','异常状态','不确定','复核状态'],[
+    [`FIELD-${10030+index*3}`,r.reportType==='内镜检查'?'检查部位':'核心指标',r.reportType==='内镜检查'?'胃体、胃窦':'报告原文值','已提取','—',String(r.riskLevel),'否',String(r.reviewStatus)],
+    [`FIELD-${10031+index*3}`,r.reportType==='内镜检查'?'胃炎类型':'医生结论',r.reportType==='内镜检查'?'慢性非萎缩性胃炎':'报告结论','结构化文本','—','待结合临床','否',String(r.reviewStatus)],
+    [`FIELD-${10032+index*3}`,r.reportType==='内镜检查'?'是否胆汁反流':'报告风险项',r.reportType==='内镜检查'?'可见胆汁反流':'未见明确高危原文',r.reportType==='内镜检查'?'是':'否','—',String(r.riskLevel),'否',String(r.reviewStatus)]
+  ])]
+  const blocks:Record<string,DetailBlock[]>={
+    '任务概览':taskOverview,
+    '原始报告':[
+      {type:'text',title:'报告预览区域',content:`[${r.reportType} ${r.uploadMethod}预览]\n文件内容仅供授权运营人员查看，预览区域已启用水印和访问审计。`},
+      info([['文件名称',`${r.reportId}_${r.name}.${r.uploadMethod==='文件上传'?'pdf':'jpg'}`],['文件格式',r.uploadMethod==='文件上传'?'PDF':'JPEG'],['文件大小',r.uploadMethod==='文件上传'?'2.8 MB':'1.6 MB'],['上传时间',String(r.createdAt)],['上传来源',`${r.uploadMethod} / ${r.dataSource}`],['隐私脱敏状态','已脱敏并添加访问水印']],'文件与隐私信息')
+    ],
+    'OCR结果':tear?[
+      {type:'text',title:'OCR识别文本',content:'泪液分泌功能测定\n\nSchirmer试验：\nOD：10mm/5min\nOS：7mm/5min\n\n角膜荧光素染色检查：OU\n\n泪膜破裂时间：\nOD：2s\nOS：1s'},
+      {type:'alert',tone:'warning',title:'OCR语义约束',content:'OU 仅表示双眼，不代表阳性或阴性。AI解读必须忠实保留原文不确定性。'},
+      info([['OCR状态','已完成'],['OCR引擎','Vision OCR Pro'],['OCR置信度','96%'],['失败原因','无'],['人工修正记录','医学审核员确认 OU 原文，无文字修改']])
+    ]:[
+      info([['OCR状态',String(r.ocrStatus)],['OCR引擎',online?'接口结构化数据，无需OCR':'Vision OCR Pro'],['OCR置信度',online?'不适用':`${92-index}%`],['失败原因',r.ocrStatus==='识别失败'?'文件图像质量不足':'无'],['人工修正记录',r.ocrStatus==='人工修正'?'已修正2处字段':'无']]),
+      {type:'text',title:'识别文本',content:`${r.name}\n医院：${r.hospital}\n科室：${r.department}\n检查日期：${r.examDate}\n检查结论：已提取并等待结构化校验。`}
+    ],
+    '结构化字段':structure,
+    'AI解读结果':tear?[
+      {type:'text',title:'解读摘要',content:'检查提示双眼泪膜稳定性明显下降，左眼泪液分泌偏低，常见于干眼症及睑板腺功能障碍。'},
+      {type:'text',title:'指标解释与异常项',content:'BUT OD 2s、OS 1s，明显短于常用参考范围；Schirmer OS 7mm/5min偏低。'},
+      {type:'text',title:'注意事项与不确定信息',content:'角膜荧光素染色仅记录 OU，不能解释为阳性或阴性。具体分型需结合眼科面诊。'},
+      {type:'alert',tone:'warning',title:'禁止诊断声明',content:'AI解读用于健康信息说明，不构成医生诊断或治疗处方。'}
+    ]:[
+      {type:'text',title:'解读摘要',content:`${r.name}已完成AI解读，风险等级为${r.riskLevel}。异常项目需结合既往病史和医生意见综合判断。`},
+      {type:'text',title:'可能含义与注意事项',content:'系统已按报告原文解释指标，不对未明确字段进行医学推断。'},
+      {type:'alert',tone:'info',title:'免责声明',content:'AI解读不能替代医生诊断，出现不适或高风险提示时请及时线下就医。'}
+    ],
+    '风险评估':[
+      info([['风险等级',String(r.riskLevel)],['命中规则ID',tear?'RULE-RPT-DRYEYE-001':`RULE-RPT-${String(r.id).slice(-3)}`],['命中规则名称',tear?'泪膜稳定性异常规则':`${r.reportType}异常项评估规则`],['命中原因',tear?'BUT双眼明显缩短、Schirmer左眼偏低':`报告结构化异常项触发${r.riskLevel}`],['需要复查',r.riskLevel==='无明显异常'?'按常规体检周期':'是'],['需要线下就医',r.riskLevel==='高风险'||r.riskLevel==='紧急风险'?'是':'结合症状判断'],['触发高危提醒',r.riskLevel==='高风险'||r.riskLevel==='紧急风险'?'是':'否']],'医学风险规则')
+    ],
+    '健康建议':[
+      info([['生活建议',tear?'减少长时间看屏幕，注意眨眼和眼部休息':'保持规律作息，记录相关症状变化'],['复查建议',r.riskLevel==='无明显异常'?'按常规周期复查':'建议携报告线下复查'],['科室建议',String(r.department)],['用药提醒','不要根据AI解读自行新增、停用或调整处方药'],['禁忌提示','存在明显不适或风险升级时停止居家观察'],['推荐AI问诊继续追问',r.riskLevel==='紧急风险'?'否，直接急诊':'是']],'个性化健康建议')
+    ],
+    '医学复核':[
+      info([['复核状态',String(r.reviewStatus)],['复核医生',r.reviewStatus==='不需要复核'?'系统规则豁免':'李医生'],['复核时间',r.reviewStatus==='待复核'?'—':String(r.updatedAt)],['复核意见',tear?'重点确认OU字段不被过度解释':'核对结构化字段和AI解读是否忠实原文'],['修改AI解读',tear?'待确认':'否'],['允许入档',r.reviewStatus==='复核驳回'?'否':'是']],'医学审核')
+    ],
+    '入档记录':[
+      info([['是否入档',String(r.archiveStatus)],['目标健康档案ID',`HEA-${String(r.subjectId).slice(2)}`],['目标健康主体ID',String(r.subjectId)],['入档字段','报告索引、结构化指标、风险等级、解读摘要'],['入档时间',r.archiveStatus==='已入档'?String(r.updatedAt):'—'],['入档操作人','数据入档服务'],['字段冲突',r.archiveStatus==='入档冲突待确认'?'是':'否'],['冲突处理状态',r.archiveStatus==='入档冲突待确认'?'待用户或人工确认':'无冲突']],'健康档案入档链路')
+    ],
+    '模型与Prompt':[
+      info([['模型名称',String(r.modelName)],['模型版本',String(r.modelName)==='deepseek-chat'?'DeepSeek V3.1':'MedGPT-4.1-202607'],['Prompt版本',String(r.promptVersion)],['工具调用记录','报告结构化、医学规则、健康档案关联'],['读取健康档案','是，仅读取授权范围'],['调用医学规则','是'],['调用报告结构化工具','是']],'AI模型与编排'),
+      {type:'ai',model:String(r.modelName),tool:'OCR / 结构化 / 风险规则 / 健康建议',duration:'2.46s',input:`${r.reportType}结构化字段及健康主体授权上下文`,output:`完成${r.riskLevel}评估并生成健康建议`}
+    ],
+    '操作日志':[{type:'timeline',items:[
+      {time:String(r.createdAt),actor:String(r.dataSource),title:'上传或拉取报告',content:`通过${r.uploadMethod}创建报告 ${r.reportId}`},
+      {time:String(r.createdAt),actor:'OCR服务',title:'OCR识别完成',content:`状态：${r.ocrStatus}`},
+      {time:String(r.updatedAt),actor:'结构化引擎',title:'结构化字段提取完成',content:`状态：${r.structuredStatus}`},
+      {time:String(r.updatedAt),actor:String(r.modelName),title:'AI解读完成',content:`Prompt：${r.promptVersion}`},
+      {time:String(r.updatedAt),actor:'风险规则引擎',title:'风险评估完成',content:`风险等级：${r.riskLevel}`},
+      {time:String(r.updatedAt),actor:'医学审核服务',title:'医学复核状态更新',content:String(r.reviewStatus)},
+      {time:String(r.updatedAt),actor:'数据入档服务',title:'报告入档',content:String(r.archiveStatus)},
+      {time:String(r.updatedAt),actor:'用户端',title:'用户反馈',content:String(r.feedbackStatus)},
+      {time:String(r.updatedAt),actor:'医学运营管理员',title:'查看报告详情',content:`权限校验通过，访问任务 ${r.id}`}
+    ]}]
+  }
+  return [String(r.id),{...r,tabs:blocks} as BusinessDetail]
+}))
+
 export const detailMockData:Record<string,Record<string,BusinessDetail>>={
   users:{U10021:userDetail},
   health:healthDetailData,
   records:{MR10021:recordDetail,'MR-10021':recordDetail},
   reports:{RP10021:reportDetail,'RP-10021':reportDetail},
-  consults:{AI10022:consultDetail,'AI-10022':consultDetail,'AI-10021':consultDetail},
+  consults:aiClinicDetailData,
   triage:{'TRI-10021':triageDetail},
   doctors:{'DOC-10021':doctorDetail,'DOC10021':doctorDetail},
   agents:{'AGE-10021':agentDetail,'AGE10021':agentDetail},
@@ -320,6 +438,6 @@ export const detailMockData:Record<string,Record<string,BusinessDetail>>={
   'med-plans':{'MED-10021':planDetail,'MED10021':planDetail},
   rules:{'RUL-10021':ruleDetail,'RULE-EMG-CHEST-001':ruleDetail},
   corrections:{'COR-10021':correctionDetail,'COR10021':correctionDetail}
-  ,interpretation:{'INT-10021':interpretationDetail},
+  ,interpretation:reportTaskDetailData,
   family:familyDetailData
 }

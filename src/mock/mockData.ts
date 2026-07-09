@@ -3,6 +3,8 @@ import { createRecordFor, formSchemas } from './formSchemas'
 import { userProfiles } from './userData'
 import { familyMembers } from './familyData'
 import { healthArchives } from './healthData'
+import { aiClinicSessions, diagnosisRecords, symptomRecords } from './aiClinicData'
+import { reportInterpretationTasks } from './reportInterpretationData'
 
 const people = ['刘志辉', '陈雨桐', '周铭轩', '林婉清', '吴嘉诚', '赵欣怡', '孙建国', '高晓雯', '叶子航', '许安然']
 const hospitals = ['华中科技大学协和深圳医院', '北京大学深圳医院', '南方医科大学深圳医院', '深圳市第三人民医院']
@@ -187,6 +189,17 @@ pageConfigs.interpretation={
   ],
   actions:['查看详情','查看原报告','查看结构化字段','重新OCR','重新生成解读','提交复核','查看纠错']
 }
+pageConfigs.interpretation={
+  ...pageConfigs.interpretation,
+  description:'管理报告上传或在线拉取、OCR、结构化、AI解读、风险评估、健康建议、医学复核和健康档案入档全链路',
+  columns:[col('id','解读任务ID'),col('reportId','报告ID'),col('userId','用户ID'),col('userName','用户姓名'),col('subjectId','健康主体ID'),col('subjectName','主体姓名'),col('relation','成员关系'),
+    col('name','报告名称'),col('reportType','报告类型'),col('uploadMethod','上传方式'),col('dataSource','数据来源'),col('hospital','医院'),col('department','科室'),col('examDate','检查日期'),
+    col('ocrStatus','OCR状态',true),col('structuredStatus','结构化状态',true),col('aiStatus','AI解读状态',true),col('riskLevel','风险等级',true),col('reviewStatus','医学复核',true),
+    col('archiveStatus','入档状态',true),col('feedbackStatus','用户反馈',true),col('modelName','模型名称'),col('promptVersion','Prompt版本'),col('createdAt','创建时间'),col('updatedAt','最近更新时间')],
+  rows:reportInterpretationTasks,
+  filters:[{key:'uploadMethod',label:'上传方式',options:['全部','拍照上传','相册上传','文件上传','在线查报告']},{key:'dataSource',label:'数据来源',options:['全部','用户上传','深圳区域医疗平台','医院HIS','医院LIS','体检机构接口','后台管理员上传']},{key:'reportType',label:'报告类型',options:['全部','眼科检查','内镜检查','检验报告','影像报告']},{key:'ocrStatus',label:'OCR状态',options:['全部','待识别','识别中','已完成','识别失败','人工修正','不适用']},{key:'aiStatus',label:'AI解读状态',options:['全部','待解读','解读中','已解读','解读失败','待重新解读']},{key:'reviewStatus',label:'复核状态',options:['全部','不需要复核','待复核','复核通过','复核驳回','复核中']},{key:'archiveStatus',label:'入档状态',options:['全部','未入档','待入档','已入档','入档失败','入档冲突待确认']}],
+  actions:['查看解读','查看原报告','查看OCR','查看结构化','医学复核','入档记录','纠错记录']
+}
 
 pageConfigs.doctors.fields = [
   field('name','医生姓名'),field('avatar','头像','file'),field('hospital','所属医院','select',hospitals),
@@ -202,6 +215,30 @@ pageConfigs.rules.fields = [
   field('action','推荐动作','textarea'),field('template','回复模板','textarea'),field('priority','优先级'),field('status','是否启用','select',['启用','停用'])
 ]
 pageConfigs.health.actions = ['查看档案','编辑','查看病历','查看报告','入档记录']
+pageConfigs.consults={
+  ...pageConfigs.consults,title:'AI 诊室 / 问诊会话管理',description:'管理 AI 医疗助手多轮问诊、症状采集、风险分级、导诊结论和数据入档全过程',
+  columns:[col('id','问诊会话ID'),col('userId','用户ID'),col('userName','用户姓名'),col('subjectId','健康主体ID'),col('subjectName','主体姓名'),col('relation','成员关系'),
+    col('chiefComplaint','主诉'),col('currentSymptoms','当前症状'),col('progress','问诊进度'),col('rounds','追问轮次'),col('consultStatus','问诊状态',true),col('riskLevel','风险等级',true),
+    col('rule','命中规则'),col('department','推荐科室'),col('symptomCreated','症状记录',true),col('diagnosisCreated','诊断记录',true),col('archiveStatus','是否入档',true),
+    col('modelName','模型名称'),col('promptVersion','Prompt版本'),col('updatedAt','最近更新时间')],
+  rows:aiClinicSessions,filters:[{key:'consultStatus',label:'问诊状态',options:['全部','问诊中','待用户补充','信息已足够','已生成结论','已中断','已转人工','已触发风险']},{key:'riskLevel',label:'风险等级',options:['全部','低风险','中风险','高风险','紧急风险']},{key:'department',label:'推荐科室',options:['全部','消化内科','眼科','急诊科','心血管内科','皮肤科','呼吸内科']}],
+  actions:['查看详情','查看症状记录','查看诊断记录','查看入档记录']
+}
+pageConfigs.symptoms={
+  ...pageConfigs.symptoms,columns:[col('id','症状记录ID'),col('userId','用户ID'),col('subjectId','健康主体ID'),col('subjectName','主体姓名'),col('sourceType','来源类型'),
+    col('sourceSessionId','来源会话ID'),col('chiefComplaint','主诉'),col('name','症状名称'),col('bodyPart','症状部位'),col('nature','症状性质'),col('duration','持续时间'),
+    col('severity','严重程度',true),col('companions','伴随症状'),col('redFlag','红旗症状',true),col('completeness','信息完整度'),col('diagnosisId','关联诊断ID'),
+    col('archiveStatus','是否入档',true),col('updatedAt','更新时间')],
+  rows:symptomRecords,filters:[{key:'sourceType',label:'来源类型',options:['全部','AI诊室','用户手动记录','医生病历提取','报告解读提取','后台管理员录入']},{key:'redFlag',label:'红旗症状',options:['全部','是','否','待排查']}],
+  actions:['查看详情','编辑','查看来源会话','查看关联诊断']
+}
+pageConfigs.diagnoses={
+  ...pageConfigs.diagnoses,columns:[col('id','诊断ID'),col('userId','用户ID'),col('subjectId','健康主体ID'),col('subjectName','主体姓名'),col('name','诊断名称'),
+    col('source','诊断来源'),col('sourceId','来源单据ID'),col('department','关联科室'),col('confirmStatus','确认状态',true),col('currentStatus','当前状态',true),
+    col('riskLevel','风险等级',true),col('doctor','确认医生'),col('aiContext','AI上下文',true),col('archiveStatus','是否入档',true),col('updatedAt','更新时间')],
+  rows:diagnosisRecords,filters:[{key:'source',label:'诊断来源',options:['全部','医生诊断','病历提取','报告提取','AI初筛','用户自填']},{key:'confirmStatus',label:'确认状态',options:['全部','医生确认','AI初筛','待医生确认','用户确认','已排除']},{key:'currentStatus',label:'当前状态',options:['全部','现患','已缓解','待复查','已排除','长期管理']}],
+  actions:['查看详情','编辑','查看来源单据','查看健康档案']
+}
 pageConfigs.doctors.actions = ['查看详情','编辑','查看号源','查看智能体','删除']
 pageConfigs['drug-kb'].actions = ['查看说明书','编辑','查看药箱','用药计划','删除']
 pageConfigs.rules.actions = ['查看详情','编辑','命中会话','启用','删除']
@@ -210,7 +247,7 @@ export const menuGroups: { name: string; items: readonly (readonly [string, stri
   { name: '总览', items: [['dashboard','工作台']] },
   { name: '用户与档案', items: [['users','用户管理'],['family','家庭成员管理'],['health','健康档案管理']] },
   { name: '医疗数据', items: [['records','病历管理'],['reports','检查报告管理'],['diagnoses','诊断记录管理'],['symptoms','症状记录管理']] },
-  { name: 'AI 服务', items: [['consults','AI 问诊管理'],['interpretation','报告解读管理'],['triage','智能导诊管理'],['agents','医生智能体管理']] },
+  { name: 'AI 服务', items: [['consults','AI 诊室管理'],['interpretation','报告解读管理'],['triage','智能导诊管理'],['agents','医生智能体管理']] },
   { name: '医疗资源', items: [['hospitals','医院管理'],['departments','科室管理'],['doctors','医生管理'],['slots','号源管理'],['doctor-rules','医生推荐规则']] },
   { name: '知识与药品', items: [['medical-kb','医学知识库'],['drug-kb','药品知识库'],['medicine-box','用户药箱管理'],['med-plans','用药计划管理']] },
   { name: 'AI 配置', items: [['rules','规则中心'],['models','AI 模型配置'],['prompts','Prompt 管理'],['tools','工具调用配置']] },

@@ -26,13 +26,26 @@ export default function GenericPage({config,onNavigate,onToast}:{config:PageConf
   }),[rows,keyword,filter,status,date,endDate,extraValues,filterCfg.key,config.filters])
   const action=(a:string,row:RowData)=>{
     if(config.key==='interpretation'){
-      if(a==='查看纠错'){onNavigate('corrections');return}
-      if(a==='查看原报告'){onNavigate('reports');return}
-      const tabMap:Record<string,string>={'查看详情':'任务概览','查看结构化字段':'结构化字段'}
+      if(a==='查看纠错'||a==='纠错记录'){onNavigate('corrections');return}
+      const tabMap:Record<string,string>={'查看详情':'任务概览','查看解读':'AI解读结果','查看原报告':'原始报告','查看OCR':'OCR结果','查看结构化':'结构化字段','查看结构化字段':'结构化字段','医学复核':'医学复核','入档记录':'入档记录'}
       if(tabMap[a]){setDetailTab(tabMap[a]);setDetail(row);return}
       if(a==='重新OCR'||a==='重新生成解读'||a==='提交复核'){onToast(`${a}任务已提交`);return}
     }
     if(config.key==='family'&&a==='查看档案'){onNavigate('health');return}
+    if(config.key==='consults'){
+      if(a==='查看详情'){setDetailTab('会话概览');setDetail(row);return}
+      if(a==='查看症状记录'){onNavigate('symptoms');return}
+      if(a==='查看诊断记录'){onNavigate('diagnoses');return}
+      if(a==='查看入档记录'){onNavigate('archive');return}
+    }
+    if(config.key==='symptoms'){
+      if(a==='查看来源会话'){onNavigate('consults');return}
+      if(a==='查看关联诊断'){onNavigate('diagnoses');return}
+    }
+    if(config.key==='diagnoses'){
+      if(a==='查看来源单据'){onNavigate(String(row.sourceId).startsWith('RP')?'reports':'records');return}
+      if(a==='查看健康档案'){onNavigate('health');return}
+    }
     if(config.key==='health'){
       if(a==='查看档案'){setDetailTab('档案概览');setDetail(row);return}
       if(a==='查看病历'){onNavigate('records');return}
