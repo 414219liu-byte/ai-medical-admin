@@ -21,6 +21,7 @@ export const detailConfigs:Record<string,DetailConfig>={
   diagnoses:standard('诊断记录管理',['诊断概览','来源病历','关联报告','状态变更','操作日志']),
   symptoms:standard('症状记录管理',['症状概览','来源对话','入档记录','风险研判','操作日志']),
   consults:{...standard('AI诊室 / 问诊会话管理'),subtitle:d=>`会话编号：${d.id}｜用户：${d.userName} ${d.userId}｜健康主体：${d.subjectName} ${d.subjectId}`,statusFields:['consultStatus','riskLevel','archiveStatus'],tabs:['会话概览','多轮问诊记录','症状结构化','风险规则命中','AI结论与导诊','模型与工具调用','数据入档与审计'],actions:[{label:'查看症状记录',route:'symptoms'},{label:'查看入档记录',route:'archive',tone:'primary'},{label:'查看命中规则',route:'rules'}]},
+  camera:{...standard('AI智能相机管理'),subtitle:d=>`任务编号：${d.id}｜用户：${d.userName} ${d.userId}｜健康主体：${d.subjectName} ${d.subjectId}`,statusFields:['qualityStatus','privacyStatus','aiStatus','riskLevel','archiveStatus'],tabs:['任务概览','原始图片','隐私脱敏','图像质量检测','结构化特征','AI分析结果','风险评估','健康建议','入档与症状记录','模型与工具调用','操作日志'],actions:[{label:'查看症状记录',route:'symptoms'},{label:'查看健康档案',route:'health'},{label:'查看入档记录',route:'archive',tone:'primary'},{label:'查看用户反馈',route:'feedback'}]},
   interpretation:{
     ...standard('报告解读管理'),
     titleField:'name',

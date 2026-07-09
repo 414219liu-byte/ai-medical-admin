@@ -11,6 +11,7 @@ import { familyMembers } from './familyData'
 import { healthArchives } from './healthData'
 import { aiClinicSessions } from './aiClinicData'
 import { reportInterpretationTasks } from './reportInterpretationData'
+import { cameraTasks } from './cameraData'
 
 export interface BusinessDetail {
   id:string
@@ -424,6 +425,64 @@ const reportTaskDetailData:Record<string,BusinessDetail>=Object.fromEntries(repo
   return [String(r.id),{...r,tabs:blocks} as BusinessDetail]
 }))
 
+const cameraDetailData:Record<string,BusinessDetail>=Object.fromEntries(cameraTasks.map((c,index)=>{
+  const traceless=c.traceless==='是'
+  const failed=String(c.qualityStatus)!=='合格'
+  const symptomId=c.symptomCreated==='已生成'?`SYM-CAM-${String(c.id).slice(-5)}`:'—'
+  const diagnosisId=String(c.diagnosisCreated).includes('AI初筛')?`DG-CAM-${String(c.id).slice(-5)}`:'—'
+  const featureRows:Record<string,(string|number)[][]>={
+    '舌苔':[['舌色','红'],['苔色','白苔'],['苔质','薄苔'],['舌形','轻度胖大'],['齿痕','轻度'],['裂纹','无'],['津液','正常'],['识别置信度','91%']],
+    '皮肤患处':[['皮损类型','红斑、轻度脱屑'],['部位',traceless?'隐私部位（已脱敏）':'上肢'],['面积估算','约2.3cm²'],['红肿程度','轻度'],['是否渗出','否'],['是否破溃','否'],['严重程度','中'],['识别置信度','88%']],
+    '肌肤状态':[['油脂程度','T区偏高'],['干燥程度','双颊轻度'],['毛孔状态','轻度明显'],['色斑情况','少量'],['痘痘数量','2'],['泛红程度','轻度'],['肤质类型','混合型']],
+    '脱发':[['拍摄部位','头顶部'],['发缝宽度',failed?'无法评估':'6.2mm'],['头皮暴露程度',failed?'目标不完整':'中度'],['头发密度估计',failed?'无法评估':'约112根/cm²'],['脱发等级',failed?'未评估':'III级倾向'],['识别置信度',failed?'—':'86%']],
+    '药盒':[['药品名称','滋润 环孢素滴眼液II'],['通用名','环孢素滴眼液'],['批准文号','国药准字H20200001'],['规格','0.4ml:0.2mg'],['生产厂家','沈阳兴齐眼药股份有限公司'],['有效期','2027-03'],['匹配药品知识库','是'],['可加入用户药箱','是']],
+    '报告':[['文件类型','检查报告图片'],['OCR状态','待重新识别'],['报告类型','待识别'],['医院','图像模糊无法确认'],['检查日期','待识别'],['建议','上传PDF或重新拍摄']]
+  }
+  const features=featureRows[String(c.captureType)]??featureRows['皮肤患处']
+  const tabs:Record<string,DetailBlock[]>={
+    '任务概览':[info([['任务ID',String(c.id)],['用户ID',String(c.userId)],['用户姓名',String(c.userName)],['健康主体ID',String(c.subjectId)],['主体姓名',String(c.subjectName)],['成员关系',String(c.relation)],['拍摄类型',String(c.captureType)],['拍摄场景',String(c.scene)],['无痕模式',String(c.traceless)],['当前任务状态',String(c.status)],['风险等级',String(c.riskLevel)],['创建时间',String(c.createdAt)],['最近更新时间',String(c.updatedAt)]],'任务与健康主体'),...(traceless?[{type:'alert',tone:'warning',title:'无痕隐私任务',content:'该任务不长期保存原图，默认不写入健康档案，仅保留最小必要审计信息。'} as DetailBlock]:[])],
+    '原始图片':[
+      {type:'text',title:'图像预览区域',content:traceless?'[无痕模式：原始图片已按策略删除，后台不可查看]':`[${c.captureType}图像预览 · 已加访问水印]`},
+      info([['文件名称',traceless?'不留存':`${c.id}_${c.captureType}.jpg`],['文件格式','JPEG'],['文件大小',traceless?'不留存':'1.8 MB'],['拍摄来源',String(c.scene)],['上传时间',String(c.createdAt)],['保存原图',traceless?'否':'是'],['原图保存状态',traceless?'会话结束后已删除':'加密保存'],['自动删除时间',traceless?String(c.updatedAt):'30天后按策略清理']],'文件留存策略'),
+      ...(traceless?[{type:'alert',tone:'danger',title:'当前为无痕模式',content:'原图不长期保存，会话结束后自动删除；后台仅保留脱敏分析摘要、权限校验和必要审计记录。'} as DetailBlock]:[])
+    ],
+    '隐私脱敏':[
+      info([['检测到人脸',c.captureType==='肌肤状态'?'是':'否'],['检测到隐私部位',c.scene==='私密拍'?'是':'否'],['生成脱敏图',traceless?'仅会话内临时生成':'是'],['脱敏方式',traceless?'不留存 / 区域裁剪':c.captureType==='肌肤状态'?'人脸局部打码':'局部遮挡'],['脱敏图预览',traceless?'临时图已销毁':'可在授权范围查看'],['处理时间',String(c.updatedAt)],['脱敏结果',String(c.privacyStatus)]],'隐私检测与处理')
+    ],
+    '图像质量检测':[
+      info([['清晰度评分',failed?'48 / 100':'92 / 100'],['光照评分',c.qualityStatus==='光线不足'?'42 / 100':'88 / 100'],['拍摄距离',c.qualityStatus==='距离过近'?'过近':'符合规范'],['目标完整度',c.qualityStatus==='目标不完整'?'不足60%':'96%'],['是否遮挡','否'],['符合拍摄规范',failed?'否':'是'],['质量结论',String(c.qualityStatus)],['需要重拍',failed?'是':'否']],'质量检测指标'),
+      ...(failed?[{type:'alert',tone:'warning',title:'建议重新拍摄',content:String(c.summary)} as DetailBlock]:[])
+    ],
+    '结构化特征':[table(['特征字段','识别结果'],features),{type:'alert',tone:'info',title:'结构化特征说明',content:'图像特征仅用于AI初筛和健康风险提示，不能单独作为医学诊断依据。'}],
+    'AI分析结果':[
+      {type:'text',title:'分析摘要',content:String(c.summary)},
+      info([['图像特征解释',`${c.captureType}图像已提取可见特征并通过医学规则校验`],['可能含义',c.captureType==='舌苔'?'中医体质 / 舌象倾向分析':c.captureType==='皮肤患处'?'皮肤问题AI初筛 / 风险提示':'健康状态趋势参考'],['不确定信息',failed?'图像质量不足，无法完成可靠评估':'图像分析受光线、角度和设备影响'],['建议复拍',failed?'是':'视症状变化'],['建议线下就医',c.riskLevel==='中风险'||c.riskLevel==='建议线下就医'?'是':'否'],['免责声明','AI拍肤、舌苔和脱发分析不能作为正式医学诊断']],'分析边界与建议')
+    ],
+    '风险评估':[info([['风险等级',String(c.riskLevel)],['命中规则ID',`RULE-CAM-${String(c.captureType).toUpperCase()}-${String(c.id).slice(-3)}`],['命中规则名称',`${c.captureType}图像风险规则`],['命中原因',String(c.summary)],['存在高危特征',c.riskLevel==='高风险'||c.riskLevel==='建议线下就医'?'是':'否'],['需要人工复核',String(c.reviewStatus)==='待复核'?'是':'否'],['建议线下就医',c.riskLevel==='中风险'||c.riskLevel==='建议线下就医'?'是':'否'],['推荐科室',c.captureType==='皮肤患处'||c.captureType==='脱发'?'皮肤科':c.captureType==='舌苔'?'中医科 / 全科':'相关科室']],'风险规则结果')],
+    '健康建议':[info([['日常护理建议',c.captureType==='皮肤患处'?'保持局部清洁，避免抓挠和自行使用激素药膏':'保持规律作息并观察变化'],['复拍建议',failed?'按拍摄引导重新拍摄完整目标':'7-14天后同条件复拍便于趋势比较'],['观察周期','7天'],['推荐科室',c.captureType==='皮肤患处'||c.captureType==='脱发'?'皮肤科':'全科 / 对应专科'],['建议继续AI问诊',failed?'否':'是'],['建议上传更多图片',c.captureType==='皮肤患处'?'是，建议远景和局部各1张':'视情况'],['建议就医',c.riskLevel==='中风险'||c.riskLevel==='建议线下就医'?'是':'暂无紧急就医提示']],'个性化健康建议')],
+    '入档与症状记录':[
+      info([['生成症状记录',String(c.symptomCreated)],['症状记录ID',symptomId],['生成诊断记录',String(c.diagnosisCreated)],['诊断记录ID',diagnosisId],['诊断确认状态',diagnosisId==='—'?'未生成':'AI初筛 / 待医生确认'],['写入健康档案',traceless?'否':String(c.archiveStatus).includes('已')?'是':'待确认'],['目标健康档案ID',`HEA-${String(c.subjectId).slice(2)}`],['入档字段','图像分析摘要、结构化特征、风险等级、健康建议'],['入档状态',String(c.archiveStatus)],['需要用户确认',traceless?'主动确认后才允许':'是']],'症状、诊断与健康档案'),
+      ...(traceless?[{type:'alert',tone:'warning',title:'无痕模式默认不入档',content:'仅当用户主动确认后，才可将脱敏后的结构化摘要写入健康档案；原图始终不入档。'} as DetailBlock]:[])
+    ],
+    '模型与工具调用':[
+      info([['模型名称',String(c.modelName)],['模型版本','Medical Vision 2026.07'],['Prompt版本',String(c.promptVersion)],['图像识别工具','medical-image-analyzer-v3'],['隐私脱敏工具','privacy-mask-v2'],['规则引擎','camera-risk-engine-v1'],['读取健康档案','按授权范围读取'],['调用药品知识库',c.captureType==='药盒'?'是':'否'],['输出质检状态',String(c.aiStatus)==='已完成'?'通过':'待质检']],'模型编排与安全工具'),
+      {type:'ai',model:String(c.modelName),tool:'图像质量 / 隐私脱敏 / 特征提取 / 风险规则',duration:'2.82s',input:`${c.captureType}图像，场景：${c.scene}`,output:String(c.summary)}
+    ],
+    '操作日志':[{type:'timeline',items:[
+      {time:String(c.createdAt),actor:'用户端',title:'打开AI智能相机',content:`选择拍摄类型：${c.captureType}`},
+      {time:String(c.createdAt),actor:'智能相机',title:'完成拍摄',content:`场景：${c.scene}，无痕模式：${c.traceless}`},
+      {time:String(c.updatedAt),actor:'图像质量服务',title:'质量检测完成',content:`结论：${c.qualityStatus}`},
+      {time:String(c.updatedAt),actor:'隐私脱敏服务',title:'隐私处理完成',content:String(c.privacyStatus)},
+      {time:String(c.updatedAt),actor:String(c.modelName),title:'AI图像分析完成',content:String(c.aiStatus)},
+      {time:String(c.updatedAt),actor:'风险规则引擎',title:'风险评估完成',content:`风险等级：${c.riskLevel}`},
+      {time:String(c.updatedAt),actor:'症状记录服务',title:'生成症状记录',content:`状态：${c.symptomCreated}；记录：${symptomId}`},
+      ...(traceless?[{time:String(c.updatedAt),actor:'隐私清理服务',title:'无痕模式删除原图',content:'原图和临时脱敏图已按策略销毁'}]:[]),
+      {time:String(c.updatedAt),actor:'医学运营管理员',title:'查看任务详情',content:`权限校验通过，审计任务 ${c.id}`}
+    ]}]
+  }
+  return [String(c.id),{...c,tabs} as BusinessDetail]
+}))
+
 export const detailMockData:Record<string,Record<string,BusinessDetail>>={
   users:{U10021:userDetail},
   health:healthDetailData,
@@ -439,5 +498,6 @@ export const detailMockData:Record<string,Record<string,BusinessDetail>>={
   rules:{'RUL-10021':ruleDetail,'RULE-EMG-CHEST-001':ruleDetail},
   corrections:{'COR-10021':correctionDetail,'COR10021':correctionDetail}
   ,interpretation:reportTaskDetailData,
+  camera:cameraDetailData,
   family:familyDetailData
 }

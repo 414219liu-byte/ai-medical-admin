@@ -5,6 +5,7 @@ import { familyMembers } from './familyData'
 import { healthArchives } from './healthData'
 import { aiClinicSessions, diagnosisRecords, symptomRecords } from './aiClinicData'
 import { reportInterpretationTasks } from './reportInterpretationData'
+import { cameraTasks } from './cameraData'
 
 const people = ['刘志辉', '陈雨桐', '周铭轩', '林婉清', '吴嘉诚', '赵欣怡', '孙建国', '高晓雯', '叶子航', '许安然']
 const hospitals = ['华中科技大学协和深圳医院', '北京大学深圳医院', '南方医科大学深圳医院', '深圳市第三人民医院']
@@ -189,6 +190,16 @@ pageConfigs.interpretation={
   ],
   actions:['查看详情','查看原报告','查看结构化字段','重新OCR','重新生成解读','提交复核','查看纠错']
 }
+pageConfigs.camera={
+  key:'camera',title:'AI 智能相机管理',group:'AI 服务',description:'管理拍皮肤、看舌苔、测脱发、拍药盒等图像类 AI 健康检测任务',primaryAction:'新建相机任务',
+  columns:[col('id','任务ID'),col('userId','用户ID'),col('userName','用户姓名'),col('subjectId','健康主体ID'),col('subjectName','主体姓名'),col('relation','成员关系'),
+    col('captureType','拍摄类型'),col('scene','拍摄场景'),col('traceless','无痕模式',true),col('qualityStatus','图像质量',true),col('privacyStatus','隐私脱敏',true),
+    col('aiStatus','AI分析状态',true),col('riskLevel','风险等级',true),col('summary','分析结果摘要'),col('symptomCreated','症状记录',true),col('diagnosisCreated','诊断记录',true),
+    col('archiveStatus','是否入档',true),col('reviewStatus','医学复核',true),col('modelName','模型名称'),col('promptVersion','Prompt版本'),col('createdAt','创建时间'),col('updatedAt','最近更新时间')],
+  fields:[],createFields:formSchemas.camera??[],editFields:formSchemas.camera??[],rows:cameraTasks,
+  filters:[{key:'captureType',label:'拍摄类型',options:['全部','皮肤患处','肌肤状态','舌苔','脱发','药盒','报告']},{key:'scene',label:'拍摄场景',options:['全部','普通拍摄','私密拍','无痕模式','自然光拍摄','相册上传']},{key:'qualityStatus',label:'图像质量',options:['全部','待检测','合格','光线不足','图像模糊','目标不完整','距离过近','距离过远','需重新拍摄']},{key:'aiStatus',label:'AI分析状态',options:['全部','待分析','分析中','已完成','分析失败','待人工复核','待重新拍摄']}],
+  actions:['查看任务','查看图片','查看脱敏','查看结果','入档记录','复核','纠错记录']
+}
 pageConfigs.interpretation={
   ...pageConfigs.interpretation,
   description:'管理报告上传或在线拉取、OCR、结构化、AI解读、风险评估、健康建议、医学复核和健康档案入档全链路',
@@ -247,7 +258,7 @@ export const menuGroups: { name: string; items: readonly (readonly [string, stri
   { name: '总览', items: [['dashboard','工作台']] },
   { name: '用户与档案', items: [['users','用户管理'],['family','家庭成员管理'],['health','健康档案管理']] },
   { name: '医疗数据', items: [['records','病历管理'],['reports','检查报告管理'],['diagnoses','诊断记录管理'],['symptoms','症状记录管理']] },
-  { name: 'AI 服务', items: [['consults','AI 诊室管理'],['interpretation','报告解读管理'],['triage','智能导诊管理'],['agents','医生智能体管理']] },
+  { name: 'AI 服务', items: [['consults','AI 诊室管理'],['camera','AI 智能相机管理'],['interpretation','报告解读管理'],['triage','智能导诊管理'],['agents','医生智能体管理']] },
   { name: '医疗资源', items: [['hospitals','医院管理'],['departments','科室管理'],['doctors','医生管理'],['slots','号源管理'],['doctor-rules','医生推荐规则']] },
   { name: '知识与药品', items: [['medical-kb','医学知识库'],['drug-kb','药品知识库'],['medicine-box','用户药箱管理'],['med-plans','用药计划管理']] },
   { name: 'AI 配置', items: [['rules','规则中心'],['models','AI 模型配置'],['prompts','Prompt 管理'],['tools','工具调用配置']] },

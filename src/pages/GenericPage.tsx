@@ -25,6 +25,15 @@ export default function GenericPage({config,onNavigate,onToast}:{config:PageConf
     return matches&&dateMatch&&extras&&(filter==='全部'||String(r[filterCfg.key])===filter)&&(status==='全部'||String(r.status)===status)
   }),[rows,keyword,filter,status,date,endDate,extraValues,filterCfg.key,config.filters])
   const action=(a:string,row:RowData)=>{
+    if(config.key==='camera'){
+      if(a==='纠错记录'){onNavigate('corrections');return}
+      const tabMap:Record<string,string>={
+        '查看任务':'任务概览','查看图片':'原始图片','查看脱敏':'隐私脱敏','查看脱敏结果':'隐私脱敏',
+        '查看结果':'AI分析结果','查看分析摘要':'AI分析结果','入档记录':'入档与症状记录',
+        '复核':'风险评估','查看审计':'操作日志'
+      }
+      if(tabMap[a]){setDetailTab(tabMap[a]);setDetail(row);return}
+    }
     if(config.key==='interpretation'){
       if(a==='查看纠错'||a==='纠错记录'){onNavigate('corrections');return}
       const tabMap:Record<string,string>={'查看详情':'任务概览','查看解读':'AI解读结果','查看原报告':'原始报告','查看OCR':'OCR结果','查看结构化':'结构化字段','查看结构化字段':'结构化字段','医学复核':'医学复核','入档记录':'入档记录'}
@@ -78,7 +87,9 @@ export default function GenericPage({config,onNavigate,onToast}:{config:PageConf
     <FilterBar keyword={keyword} onKeyword={setKeyword} filter={filter} onFilter={setFilter} options={filterCfg.options} filterLabel={filterCfg.label} status={status} onStatus={setStatus} date={date} onDate={setDate} endDate={endDate} onEndDate={setEndDate}
       extraFilters={(config.filters??[]).slice(1)} extraValues={extraValues} onExtra={(key,value)=>setExtraValues(v=>({...v,[key]:value}))}
       onReset={()=>{setKeyword('');setFilter('全部');setStatus('全部');setDate('');setEndDate('');setExtraValues({})}} onAdd={()=>setEditing(null)} addText={config.primaryAction??'新增记录'} onExport={()=>config.key==='family'?setExportOpen(true):onToast(`已导出 ${shown.length} 条数据`)}/>
-    <DataTable columns={config.columns} rows={shown} actions={config.actions??['查看','编辑','删除']} selected={selected} onSelected={setSelected} onAction={action}/>
+    <DataTable columns={config.columns} rows={shown} actions={config.actions??['查看','编辑','删除']}
+      actionsForRow={config.key==='camera'?(row=>row.traceless==='是'?['查看审计','查看脱敏结果','查看分析摘要']:(config.actions??[])):undefined}
+      selected={selected} onSelected={setSelected} onAction={action}/>
     <BusinessDetailDrawer row={detail} pageKey={config.key} initialTab={detailTab} onClose={()=>setDetail(null)} onNavigate={k=>{setDetail(null);onNavigate(k)}} onToast={onToast}/>
     <EditModal open={editing!==undefined} title={`${editing?'编辑':'新增'}${config.title.replace('管理','')}`} fields={editing?(config.editFields??config.fields):(config.createFields??config.fields)} initial={editing} onClose={()=>setEditing(undefined)} onSave={save}/>
     <ConfirmDialog open={!!deleteRow} name={String(deleteRow?.name??'')} onClose={()=>setDeleteRow(null)} onConfirm={()=>{setRows(x=>x.filter(r=>r.id!==deleteRow?.id));setDeleteRow(null);onToast('记录已删除')}}/>

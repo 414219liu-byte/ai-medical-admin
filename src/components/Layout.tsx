@@ -1,9 +1,9 @@
-import { Activity, Bell, Bot, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, Database, FileText, HeartPulse, Hospital, LayoutDashboard, Menu, Search, Settings, ShieldCheck, Users, Workflow } from 'lucide-react'
+import { Activity, Bell, Bot, Camera, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, Database, FileText, HeartPulse, Hospital, LayoutDashboard, Menu, Search, Settings, ShieldCheck, Users, Workflow } from 'lucide-react'
 import { menuGroups } from '../mock/mockData'
 
 const icons:Record<string,React.ReactNode>={
   dashboard:<LayoutDashboard/>,users:<Users/>,family:<Users/>,health:<HeartPulse/>,records:<FileText/>,reports:<FileText/>,diagnoses:<Activity/>,symptoms:<Activity/>,
-  consults:<Bot/>,interpretation:<Bot/>,triage:<Workflow/>,agents:<Bot/>,hospitals:<Hospital/>,departments:<Hospital/>,doctors:<Users/>,slots:<Hospital/>,
+  consults:<Bot/>,camera:<Camera/>,interpretation:<Bot/>,triage:<Workflow/>,agents:<Bot/>,hospitals:<Hospital/>,departments:<Hospital/>,doctors:<Users/>,slots:<Hospital/>,
   'doctor-rules':<Workflow/>,'medical-kb':<Database/>,'drug-kb':<Database/>,'medicine-box':<Database/>,'med-plans':<Activity/>,rules:<Workflow/>,models:<Bot/>,prompts:<FileText/>,tools:<Settings/>,
   archive:<Database/>,corrections:<ShieldCheck/>,requests:<ShieldCheck/>,feedback:<CircleHelp/>,reviews:<ShieldCheck/>,content:<FileText/>,messages:<Bell/>,permissions:<ShieldCheck/>,privacy:<ShieldCheck/>,settings:<Settings/>
 }
