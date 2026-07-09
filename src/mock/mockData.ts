@@ -2,6 +2,7 @@ import type { Column, Field, PageConfig, RowData } from '../types'
 import { createRecordFor, formSchemas } from './formSchemas'
 import { userProfiles } from './userData'
 import { familyMembers } from './familyData'
+import { healthArchives } from './healthData'
 
 const people = ['刘志辉', '陈雨桐', '周铭轩', '林婉清', '吴嘉诚', '赵欣怡', '孙建国', '高晓雯', '叶子航', '许安然']
 const hospitals = ['华中科技大学协和深圳医院', '北京大学深圳医院', '南方医科大学深圳医院', '深圳市第三人民医院']
@@ -142,11 +143,14 @@ Object.entries(pageConfigs).forEach(([key,config])=>{
 })
 
 pageConfigs.health.columns=[
-  col('id','健康档案ID'),col('user','归属用户'),col('subject','档案主体'),col('name','主体姓名'),col('relation','成员关系'),
-  col('gender','性别'),col('age','年龄'),col('diseases','基础病标签'),col('allergy','过敏史'),col('reports','报告数量'),
-  col('records','病历数量'),col('diagnoses','诊断数量'),col('medicines','用药数量'),col('aiReadable','AI可读取状态',true),
-  col('updatedAt','最近更新时间'),col('status','档案状态',true)
+  col('archiveId','健康档案ID'),col('subjectId','健康主体ID'),col('userDisplay','归属用户'),col('subjectName','主体姓名'),col('relation','成员关系'),
+  col('genderAge','性别/年龄'),col('baseDiseaseTags','基础病标签'),col('allergySummary','过敏史'),col('reportCount','报告数'),
+  col('medicalRecordCount','病历数'),col('diagnosisCount','诊断数'),col('medicationCount','用药数'),col('aiReadStatus','AI可读取状态',true),
+  col('archiveStatus','档案状态',true),col('lastArchiveTime','最近入档'),col('updatedAt','最近更新')
 ]
+pageConfigs.health.rows=healthArchives.map(x=>({...x,userDisplay:`${x.userName} / ${x.userId}`,genderAge:`${x.gender} / ${x.age}岁`}))
+pageConfigs.health.filters=[{key:'relation',label:'成员关系',options:['全部','本人','父亲','母亲','女儿','配偶']},{key:'aiReadStatus',label:'AI读取状态',options:['全部','已授权可读取','部分可读取','未授权','仅本次授权','限定范围授权','授权已过期']},{key:'archiveStatus',label:'档案状态',options:['全部','正常','待完善','待核验','已停用','数据冲突']}]
+pageConfigs.health.actions=['查看档案','编辑','查看病历','查看报告','入档记录']
 pageConfigs.health.detailTabs=['基础信息','病历记录','检查报告','诊断记录','症状记录','用药记录','AI可读取范围','数据审计日志']
 pageConfigs.reports.detailTabs=['报告原图','OCR文本','结构化字段','AI解读','人工复核','操作日志']
 pageConfigs.consults.detailTabs=['完整对话','AI追问','健康档案引用','急症规则命中','导诊结果','服务卡曝光','入档结果','质检记录','操作日志']
@@ -197,7 +201,7 @@ pageConfigs.rules.fields = [
   field('trigger','触发条件','textarea'),field('exclude','排除条件','textarea'),field('risk','风险等级','select',['普通','中风险','高风险']),
   field('action','推荐动作','textarea'),field('template','回复模板','textarea'),field('priority','优先级'),field('status','是否启用','select',['启用','停用'])
 ]
-pageConfigs.health.actions = ['查看档案','编辑','查看病历','查看报告','删除']
+pageConfigs.health.actions = ['查看档案','编辑','查看病历','查看报告','入档记录']
 pageConfigs.doctors.actions = ['查看详情','编辑','查看号源','查看智能体','删除']
 pageConfigs['drug-kb'].actions = ['查看说明书','编辑','查看药箱','用药计划','删除']
 pageConfigs.rules.actions = ['查看详情','编辑','命中会话','启用','删除']

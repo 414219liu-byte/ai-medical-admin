@@ -8,6 +8,7 @@ export type DetailBlock =
   | {type:'ai';model:string;tool:string;duration:string;input:string;output:string}
 import { userProfiles } from './userData'
 import { familyMembers } from './familyData'
+import { healthArchives } from './healthData'
 
 export interface BusinessDetail {
   id:string
@@ -254,9 +255,60 @@ const familyDetailData:Record<string,BusinessDetail>=Object.fromEntries(familyMe
   }
 } as BusinessDetail]))
 
+const healthDetailData:Record<string,BusinessDetail>=Object.fromEntries(healthArchives.map((h,index)=>{
+  const overview=info([['健康档案ID',h.archiveId],['健康主体ID',h.subjectId],['家庭成员ID',h.memberId],['归属用户ID',h.userId],['归属用户姓名',h.userName],['主体姓名',h.subjectName],['成员关系',h.relation],['性别',h.gender],['年龄',h.age],['出生日期',h.birthDate],['身高',h.height],['体重',h.weight],['档案来源',h.source],['档案状态',h.archiveStatus],['档案完整度',h.completeness],['AI可读取状态',h.aiReadStatus],['最近入档时间',h.lastArchiveTime],['最近更新时间',h.updatedAt]],'档案身份与状态')
+  const main=h.archiveId==='HEA-10021'
+  const tabs:Record<string,DetailBlock[]>={
+    '档案概览':[overview,...(h.archiveStatus==='数据冲突'?[{type:'alert',tone:'danger',title:'档案数据冲突',content:'检测到同一医疗字段存在多个来源值，已进入纠错记录队列。'} as DetailBlock]:[])],
+    '基础病与过敏史':[
+      table(['疾病名称','疾病类型','来源','来源单据ID','确认状态','当前状态','首次记录','最近更新','AI上下文'],main?[
+        ['干眼症','眼科疾病','医生病历','MR10021','医生确认','现患','2026-06-27','2026-07-09','纳入'],
+        ['睑板腺功能障碍','眼科疾病','医生病历','MR10021','医生确认','现患','2026-06-27','2026-07-09','纳入'],
+        ['慢性胃炎','消化系统疾病','医生病历','MR10022','医生确认','待复查','2026-05-12','2026-07-08','限制纳入']
+      ]:[[h.baseDiseaseTags,'健康问题','档案入档',`SRC-${h.archiveId}`,'待确认',h.archiveStatus,'2026-06-01',h.updatedAt,h.aiReadStatus.includes('授权')?'纳入':'限制纳入']]),
+      table(['过敏原','过敏类型','严重程度','来源','确认状态','最近更新'],[[h.allergySummary,h.allergySummary==='无明确药物过敏'?'无':'药物/食物','待评估','用户填报','待核验',h.updatedAt]]),
+      info([['手术史',main?'2025年胃息肉电凝切除':'无明确记录'],['家族史',main?'父亲高血压；母亲糖尿病':'待完善'],['生活习惯',main?'久坐、长时间看屏幕、偶尔熬夜':'待完善'],['备注',h.riskTags]])
+    ],
+    '病历记录':[table(['病历ID','病历名称','医院','科室','医生','主要诊断','就诊时间','来源','OCR状态','结构化状态','入档状态','医学复核'],main?[
+      ['MR10021','眼科门诊病历','深圳市宝安区人民医院','眼科','陈医生','干眼症、睑板腺功能障碍、结膜炎','2026-06-27','医院同步','已完成','已结构化','已入档','已通过'],
+      ['MR10022','消化内科门诊病历','深圳市人民医院','消化内科','李医生','慢性胃炎、胆汁反流','2026-05-12','用户上传','已完成','已结构化','已入档','已通过']
+    ]:Array.from({length:Math.min(h.medicalRecordCount,2)},(_,i)=>[`MR-${h.subjectId}-${i+1}`,`${h.subjectName}门诊病历`,i?'深圳市人民医院':'深圳市宝安区人民医院',i?'内科':'全科','医生','结构化诊断','2026-06-12',h.source,'已完成','已结构化','已入档','待复核']))],
+    '检查报告':[table(['报告ID','报告名称','类型','医院','科室','检查日期','OCR状态','结构化状态','AI解读','医学复核','入档状态'],main?[
+      ['RP10021','泪液分泌功能测定报告','眼科检查','深圳市宝安区人民医院','眼科','2026-06-27','已完成','已完成','已解读','待复核','已入档'],
+      ['RP10022','屈光检查报告','屈光检查','深圳市宝安区人民医院','眼科','2026-06-27','已完成','已完成','已解读','待复核','已入档'],
+      ['RP10023','胃镜检查报告','胃镜报告','深圳市人民医院','消化内科','2026-05-12','已完成','已完成','已解读','已通过','已入档']
+    ]:Array.from({length:Math.min(h.reportCount,3)},(_,i)=>[`RP-${h.subjectId}-${i+1}`,`${h.subjectName}检查报告${i+1}`,'检查报告','深圳市人民医院','相关科室','2026-06-20','已完成','已完成',i?'待解读':'已解读','待复核','已入档']))],
+    '诊断记录':[table(['诊断ID','诊断名称','诊断类型','来源','来源单据ID','科室','确认状态','当前状态','首次诊断','确认医生','AI上下文'],main?[
+      ['DG10021','干眼症','医生诊断','病历','MR10021','眼科','医生确认','现患','2026-06-27','陈医生','纳入'],
+      ['DG10022','睑板腺功能障碍','医生诊断','病历','MR10021','眼科','医生确认','现患','2026-06-27','陈医生','纳入'],
+      ['DG10023','慢性胃炎','医生诊断','病历','MR10022','消化内科','医生确认','待复查','2026-05-12','李医生','限制纳入']
+    ]:Array.from({length:Math.min(h.diagnosisCount,3)},(_,i)=>[`DG-${h.subjectId}-${i+1}`,h.baseDiseaseTags.split('、')[i]??'待确认诊断','结构化诊断','档案入档',`SRC-${h.archiveId}`,'相关科室','待确认','未知','2026-06-01','待确认',h.aiReadStatus.includes('授权')?'纳入':'限制纳入']))],
+    '用药记录':[table(['记录ID','药品名称','通用名','剂型','来源','处方ID','关联诊断','单次剂量','频次','用药时间','开始日期','结束日期','状态','剂量风险','AI提醒'],main?[
+      ['MED10021','思然 聚乙二醇滴眼液','聚乙二醇','滴眼液','眼科处方','RX10021','干眼症','双眼每次1滴','每日4次','白天','2026-06-27','—','正在用','剂量待确认','已开启'],
+      ['MED10022','滋润 环孢素滴眼液','环孢素','滴眼液','眼科处方','RX10021','干眼症','双眼每次1滴','每日2次','早晚','2026-06-27','—','正在用','低风险','已开启'],
+      ['MED10023','泌特 复方阿嗪米特肠溶片','复方阿嗪米特','肠溶片','消化科处方','RX10022','慢性胃炎','每次1片','每日3次','饭后待确认','2026-05-12','—','待确认','进餐关系待确认','待确认']
+    ]:Array.from({length:Math.min(h.medicationCount,3)},(_,i)=>[`MED-${h.subjectId}-${i+1}`,'档案关联药品','通用名','常规剂型','处方同步',`RX-${h.subjectId}`,'关联诊断','遵医嘱','每日1次','待确认','2026-06-01','—','正在用','待核查','已开启']))],
+    'AI可读取范围':[
+      info([['当前AI读取状态',h.aiReadStatus],['授权编号',h.consentId],['授权来源',h.source],['授权开始时间','2026-01-01'],['授权结束时间',h.aiReadStatus==='授权已过期'?'2026-06-30':'长期有效'],['限制读取字段',h.aiReadStatus==='部分可读取'?'病历原文、药箱数据、用药计划':'无'],['最近AI读取时间',h.updatedAt],['最近读取场景',main?'AI问诊 / 报告解读':'智能导诊'],['最近调用模型','MedGPT-4.1'],['最近Prompt版本','medical-context-v2.6']],'授权与最近调用'),
+      table(['数据范围','读取权限'],[['基础信息','可读取'],['基础病与过敏史','可读取'],['检查报告',h.aiReadStatus==='未授权'?'不可读取':'可读取'],['病历记录',h.aiReadStatus==='部分可读取'?'部分可读取':'可读取'],['诊断记录','可读取'],['用药记录',h.aiReadStatus.includes('授权')?'可读取':'不可读取'],['家族史','限定读取'],['生活习惯','限定读取']]),
+      {type:'alert',tone:'warning',title:'合规提示',content:'AI 仅可在授权场景和最小必要范围内读取该档案。所有读取行为均记录模型、Prompt、调用人和数据范围。'}
+    ],
+    '数据审计':[{type:'timeline',items:[
+      {time:h.updatedAt,actor:'医学运营管理员',title:'查看健康档案详情',content:`查看档案 ${h.archiveId} 和主体 ${h.subjectId}`},
+      {time:h.lastArchiveTime,actor:'数据同步服务',title:'完成增量同步',content:'同步报告、病历、诊断及用药结构化数据'},
+      {time:'2026-07-08 16:42',actor:'报告解读服务',title:'解读结果入档',content:`报告解读结果归属健康主体 ${h.subjectId}`},
+      {time:'2026-07-07 09:18',actor:'AI问诊服务',title:'读取健康档案上下文',content:`权限校验通过，读取状态：${h.aiReadStatus}`},
+      {time:'2026-07-06 14:06',actor:'王医生',title:'医学复核',content:'复核健康档案结构化内容并确认'},
+      {time:'2026-06-27 11:20',actor:'结构化引擎',title:'提取报告字段',content:'从检查报告中提取结构化字段并入档'},
+      {time:'2026-01-01 09:00',actor:'用户端',title:'创建健康档案',content:`用户创建档案并绑定主体 ${h.subjectId}`}
+    ]}]
+  }
+  return [h.id,{...h,id:h.id,name:h.name,status:h.archiveStatus,tabs} as BusinessDetail]
+}))
+
 export const detailMockData:Record<string,Record<string,BusinessDetail>>={
   users:{U10021:userDetail},
-  health:{'HEA-10021':healthDetail,'HEA-10021-health':healthDetail},
+  health:healthDetailData,
   records:{MR10021:recordDetail,'MR-10021':recordDetail},
   reports:{RP10021:reportDetail,'RP-10021':reportDetail},
   consults:{AI10022:consultDetail,'AI-10022':consultDetail,'AI-10021':consultDetail},

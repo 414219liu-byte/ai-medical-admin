@@ -33,6 +33,12 @@ export default function GenericPage({config,onNavigate,onToast}:{config:PageConf
       if(a==='重新OCR'||a==='重新生成解读'||a==='提交复核'){onToast(`${a}任务已提交`);return}
     }
     if(config.key==='family'&&a==='查看档案'){onNavigate('health');return}
+    if(config.key==='health'){
+      if(a==='查看档案'){setDetailTab('档案概览');setDetail(row);return}
+      if(a==='查看病历'){onNavigate('records');return}
+      if(a==='查看报告'){onNavigate('reports');return}
+      if(a==='入档记录'){onNavigate('archive');return}
+    }
     if(/查看|关联|原图|预览|说明书/.test(a)){setDetailTab(undefined);setDetail(row);return}
     if(a.includes('编辑')){setEditing(row);return}
     if(a.includes('删除')){setDeleteRow(row);return}

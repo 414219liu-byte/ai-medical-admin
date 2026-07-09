@@ -21,13 +21,14 @@ export const formSchemas:Record<string,Field[]>={
     f('authEnd','授权有效期','date'),req('authScope','AI读取范围','multiselect',['不允许','仅本次','允许问诊读取','允许报告解读读取','允许入档与个性化建议']),
     req('operationReason','操作原因','textarea',undefined,'管理员后台新增家庭成员的业务原因'),textArea('remark','备注')
   ],
-  health:[req('user','归属用户','select',users),req('subject','档案主体','radio',['本人','家庭成员']),req('relation','成员关系','select',['本人','爸爸','妈妈','老公','老婆','儿子','女儿','哥哥','姐姐','其他']),
-    req('name','主体姓名'),req('gender','性别','radio',['男','女','未知']),req('birthday','出生日期','date'),f('height','身高 cm','number'),f('weight','体重 kg','number'),
-    f('diseases','基础疾病标签','multiselect',['干眼症','睑板腺功能障碍','慢性胃炎','胆汁反流','高血压','糖尿病','冠心病','无']),
-    f('allergy','过敏史','multiselect',['无','青霉素','头孢','磺胺类','食物过敏','其他']),textArea('surgery','手术史',false,'无；2025年胃息肉电凝切除'),
-    textArea('familyHistory','家族史',false,'父亲高血压；母亲糖尿病'),f('habits','生活习惯','multiselect',['久坐','长时间看屏幕','熬夜','吸烟','饮酒','清淡饮食','运动不足']),
-    req('source','档案来源','select',['用户手动创建','医院同步','家庭成员共享','AI对话生成','后台创建']),req('aiReadable','AI可读取状态','select',['已授权可读取','未授权','部分可读取','禁止AI读取']),
-    req('status','档案状态','select',['正常','待完善','待核验','已停用']),textArea('remark','备注')],
+  health:[req('user','归属用户','select',['刘志辉 / U10021','陈雨桐 / U10022','周铭轩 / U10023','林婉清 / U10024']),req('subjectName','健康主体','select',['刘志辉 / HS10021','测试父亲 / HS10022','刘小朋友 / HS10023','新建健康主体']),
+    f('memberId','家庭成员','select',['FM10021 / 刘志辉 / 本人','FM10022 / 测试父亲 / 父亲','FM10023 / 刘小朋友 / 女儿','无']),
+    req('source','档案来源','select',['用户手动创建','医院同步','家庭成员共享','AI对话生成','后台管理员创建']),
+    f('baseDiseaseTags','基础病标签','multiselect',['干眼症','睑板腺功能障碍','慢性胃炎','胆汁反流','高血压','糖尿病','冠心病','无']),
+    f('allergySummary','过敏史','multiselect',['无','青霉素','头孢','磺胺类','食物过敏','待确认']),
+    req('aiReadStatus','是否允许AI读取','select',['已授权可读取','部分可读取','未授权','仅本次授权','限定范围授权']),
+    f('aiReadScope','AI读取范围','multiselect',['基础信息','基础病与过敏史','检查报告','病历记录','诊断记录','用药记录','家族史','生活习惯']),
+    textArea('remark','备注'),req('operationReason','操作原因','textarea')],
   records:[req('user','归属用户','select',users),req('subject','档案主体','select',subjects),req('hospital','医院','select',hospitals),req('department','科室','select',departments),
     req('visitDate','就诊时间','datetime-local'),req('complaint','主诉','textarea',undefined,'双眼干涩、眼痒、异物感不适2年'),textArea('history','现病史'),textArea('pastHistory','既往史'),
     textArea('physical','体格检查'),textArea('auxiliary','辅助检查'),req('name','医生诊断','textarea'),textArea('advice','处理意见'),f('doctor','医生姓名'),
@@ -131,10 +132,15 @@ export function createRecordFor(key:string,values:RowData,rows:RowData[]):RowDat
   const birthday=String(values.birthday??values.birthDate??'')
   const age=birthday?Math.max(0,now.getFullYear()-Number(birthday.slice(0,4))-(now.toISOString().slice(5,10)<birthday.slice(5,10)?1:0)):'—'
   const base:RowData={id,name:String(values.name??values.title??values.type??'新建记录'),status:String(values.status??'待审核'),updatedAt:`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`}
-  if(key==='health')Object.assign(base,{age,reports:0,records:0,diagnoses:0,medicines:0})
+  if(key==='health')Object.assign(base,{id:`HEA-${10020+rows.length+1}`,archiveId:`HEA-${10020+rows.length+1}`,subjectId:`HS${10020+rows.length+1}`,memberId:String(values.memberId??'').split(' / ')[0]||`FM${10020+rows.length+1}`,consentId:`CONSENT-HEA-${10020+rows.length+1}`,auditLog:`AUDIT-HEA-${10020+rows.length+1}`,age,reportCount:0,medicalRecordCount:0,diagnosisCount:0,medicationCount:0,archiveStatus:'待完善',status:'待完善',lastArchiveTime:'尚未入档'})
   if(key==='family'){
     const n=rows.length+21
     Object.assign(base,{id:`FM${10020+rows.length+1}`,memberId:`FM${10020+rows.length+1}`,subjectId:`HS${10020+rows.length+1}`,familyRelationId:`FR${10020+rows.length+1}`,consentId:`CONSENT${10020+rows.length+1}`,age,archiveCompleteness:'20%',lastArchiveTime:'尚未入档',businessStatus:'待确认',status:'待确认',auditLog:`AUDIT-FAM-${n}`})
+  }
+  if(key==='health'){
+    const [userName='',userId='']=String(values.user??'').split(' / ')
+    const subjectName=String(values.subjectName??'').split(' / ')[0]
+    return {...base,...values,id:base.id,archiveId:base.archiveId,subjectId:base.subjectId,memberId:base.memberId,consentId:base.consentId,auditLog:base.auditLog,userName,userId,subjectName,name:`${subjectName}健康档案`,userDisplay:`${userName} / ${userId}`,archiveStatus:'待完善',status:'待完善',updatedAt:base.updatedAt}
   }
   if(key==='users')Object.assign(base,{subjects:1,consults:0,reports:0,medicineCount:0,familyCount:0})
   if(key==='family'){
