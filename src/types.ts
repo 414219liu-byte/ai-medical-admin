@@ -35,4 +35,7 @@ export interface PageConfig {
   filters?: { label: string; key: string; options: string[] }[]
   actions?: string[]
   primaryAction?: string
+  searchPlaceholder?: string
+  hideStatusFilter?: boolean
+  dateLabel?: string
 }

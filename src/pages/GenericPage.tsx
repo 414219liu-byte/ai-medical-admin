@@ -29,6 +29,7 @@ export default function GenericPage({config,onNavigate,onToast}:{config:PageConf
       if(config.key==='ai-clinic/sessions'&&a==='查看'){onNavigate(`ai-clinic/sessions/${row.id}`);return}
       if(config.key==='ai-clinic/sessions'&&(a==='发起质检'||a==='标记异常'||a==='加入测试用例')){onToast(`${row.id} 已${a}，可在质检测试中查看`);return}
       if(config.key==='ai-clinic/templates'&&a==='查看'){onNavigate(`ai-clinic/templates/${row.id}`);return}
+      if(config.key==='ai-clinic/templates'&&['发布','复制','创建新版本','查看使用记录','调整灰度比例','全量发布','终止灰度','回滚','重新启用','查看历史版本'].includes(a)){onToast(`${row.id} ${a}操作已记录，历史会话继续绑定原模板快照`);return}
       if(a==='规则测试'||a==='执行'||a==='批量执行'){onToast(`${a}完成：高风险规则优先于模板匹配、槽位追问和直接结论`);return}
       if(a.includes('停用')){setDeleteRow({...row,name:String(row.name??row.id),__confirmAction:'停用'});return}
       if(a.includes('删除')){
@@ -122,9 +123,15 @@ export default function GenericPage({config,onNavigate,onToast}:{config:PageConf
   return <><div className="page-title"><div><h1>{config.title}</h1><p>{config.description}</p></div><button className="icon-btn"><MoreHorizontal/></button></div>
     <FilterBar keyword={keyword} onKeyword={setKeyword} filter={filter} onFilter={setFilter} options={filterCfg.options} filterLabel={filterCfg.label} status={status} onStatus={setStatus} date={date} onDate={setDate} endDate={endDate} onEndDate={setEndDate}
       extraFilters={(config.filters??[]).slice(1)} extraValues={extraValues} onExtra={(key,value)=>setExtraValues(v=>({...v,[key]:value}))}
-      onReset={()=>{setKeyword('');setFilter('全部');setStatus('全部');setDate('');setEndDate('');setExtraValues({})}} onAdd={()=>setEditing(null)} addText={config.primaryAction??'新增记录'} onExport={()=>config.key==='family'?setExportOpen(true):onToast(`已导出 ${shown.length} 条数据`)}/>
+      onReset={()=>{setKeyword('');setFilter('全部');setStatus('全部');setDate('');setEndDate('');setExtraValues({})}} onAdd={()=>setEditing(null)} addText={config.primaryAction??'新增记录'} onExport={()=>config.key==='family'?setExportOpen(true):onToast(`已导出 ${shown.length} 条数据`)}
+      searchPlaceholder={config.searchPlaceholder} hideStatusFilter={config.hideStatusFilter} dateLabel={config.dateLabel}/>
     <DataTable columns={config.columns} rows={shown} actions={config.actions??['查看','编辑','删除']}
-      actionsForRow={config.key==='camera'?(row=>row.traceless==='是'?['查看审计','查看脱敏结果','查看分析摘要']:(config.actions??[])):config.key==='ai-clinic/sessions'?(row=>row.isTestSession==='是'?['查看','发起质检','标记异常','加入测试用例','删除']:(config.actions??[])):undefined}
+      actionsForRow={config.key==='camera'?(row=>row.traceless==='是'?['查看审计','查看脱敏结果','查看分析摘要']:(config.actions??[])):config.key==='ai-clinic/sessions'?(row=>row.isTestSession==='是'?['查看','发起质检','标记异常','加入测试用例','删除']:(config.actions??[])):config.key==='ai-clinic/templates'?(row=>{
+        if(row.publishStatus==='灰度中')return ['查看','调整灰度比例','全量发布','终止灰度','回滚']
+        if(row.status==='草稿')return ['查看','编辑','发布','复制','删除']
+        if(row.status==='已停用')return ['查看','复制','重新启用','查看历史版本']
+        return ['查看','创建新版本','复制','停用','查看使用记录']
+      }):undefined}
       selected={selected} onSelected={setSelected} onAction={action}/>
     <BusinessDetailDrawer row={detail} pageKey={config.key} initialTab={detailTab} onClose={()=>setDetail(null)} onNavigate={k=>{setDetail(null);onNavigate(k)}} onToast={onToast}/>
     <EditModal open={editing!==undefined} title={editing?`编辑${config.title.replace('管理','')}`:(config.primaryAction??`新增${config.title.replace('管理','')}`)} fields={editing?(config.editFields??config.fields):(config.createFields??config.fields)} initial={editing} onClose={()=>setEditing(undefined)} onSave={save}/>

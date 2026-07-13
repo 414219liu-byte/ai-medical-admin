@@ -1,20 +1,21 @@
 import { ArrowLeft, Bot, ShieldAlert } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import StatusTag from '../../components/StatusTag'
-import { aiClinicConversation, aiClinicKnowledgeRefs, aiClinicModelCalls, aiClinicRiskRecords, aiClinicSessions, aiClinicSlotValues, aiClinicTemplates, aiClinicTemplateSlots, sessionProgress } from '../../mock/aiClinicAdminData'
+import { aiClinicConversation, aiClinicKnowledgeRefs, aiClinicModelCalls, aiClinicRiskRecords, aiClinicSessions, aiClinicSlotValues, aiClinicTemplates, aiClinicTemplateSlots, consultationTopics, sessionProgress } from '../../mock/aiClinicAdminData'
 import { calculateConsultationProgress } from '../../utils/calculateConsultationProgress'
 
 export default function AiClinicSessionDetail({ sessionId, onNavigate }: { sessionId: string; onNavigate: (key: string) => void }) {
   const session = aiClinicSessions.find(item => item.id === sessionId) ?? aiClinicSessions[0]
   const [tab, setTab] = useState('问诊概览')
   const templateSlots = aiClinicTemplateSlots[session.currentTemplateId] ?? []
+  const topics = consultationTopics.filter(topic => topic.sessionId === session.id)
   const progress = useMemo(() => templateSlots.length
-    ? calculateConsultationProgress(aiClinicSlotValues.filter(v => v.sessionId === session.id), templateSlots, { patientConfirmed: true, chiefComplaintIdentified: true, riskScreeningDone: !['高风险中断', '120中断', '心理危机暂停'].includes(session.status), highRiskTriggered: ['高风险中断', '120中断', '心理危机暂停'].includes(session.status) })
+    ? session.id === 'AIC202607130011' ? sessionProgress[session.id] : calculateConsultationProgress(aiClinicSlotValues.filter(v => v.sessionId === session.id), templateSlots, { patientConfirmed: true, chiefComplaintIdentified: true, riskScreeningDone: !['高风险中断', '120中断', '心理危机暂停'].includes(session.status), highRiskTriggered: ['高风险中断', '120中断', '心理危机暂停'].includes(session.status) })
     : sessionProgress[session.id], [session, templateSlots])
   const autoThreshold = Number(String(aiClinicTemplates.find(t => t.id === session.currentTemplateId)?.autoConclusionScore ?? '80').replace(/\D/g, '')) || 80
   const coreDone = progress.rows.filter(row => row.core).every(row => row.score > 0 || row.status === '不适用')
   const riskDone = progress.rows.find(row => row.slotName === '危险症状筛查')?.score ? '已完成' : session.status.includes('中断') ? '高风险中断' : '未完成'
-  const tabs = ['问诊概览', '完整对话', '槽位记录', '进度计算', '风险记录', '模板路由', '模型调用', '知识引用']
+  const tabs = ['问诊概览', '问诊主题', '完整对话', '槽位记录', '进度计算', '风险记录', '模板路由', '模型调用', '知识引用']
   const conversations = aiClinicConversation[session.id] ?? [
     { role: 'user', type: '用户输入', time: session.startAt.slice(11), latency: '—', content: session.chiefComplaint, slotUpdated: '主诉确认', riskChecked: '是' },
     { role: 'ai', type: session.status.includes('中断') ? '系统安全提示' : 'AI问题', time: '下一轮', latency: '1.0s', content: session.conclusion, slotUpdated: '按模板更新', riskChecked: '是' }
@@ -36,9 +37,11 @@ export default function AiClinicSessionDetail({ sessionId, onNavigate }: { sessi
       {tab === '问诊概览' && <InfoGrid items={[
         ['用户ID', session.userId], ['问诊人ID', session.patientId], ['与用户关系', session.relation], ['年龄和性别', `${session.age}岁 / ${session.gender}`],
         ['原始主诉', session.chiefComplaint], ['标准化症状', session.normalizedSymptoms], ['当前模板', session.templateName], ['是否多症状', session.multisymptom],
+        ['当前主题ID', session.currentTopicId], ['主主题ID', session.primaryTopicId], ['待处理主题', session.pendingTopicIds || '无'],
         ['当前模板ID', session.currentTemplateId], ['最终模板ID', session.finalTemplateId], ['模板版本', session.templateVersion], ['模板快照版本', session.templateSnapshotId],
         ['匹配置信度', session.templateMatchConfidence.toFixed(2)], ['是否点击直接结论', session.clickedDirectConclusion], ['结束原因', session.endReason], ['推荐科室', session.department], ['结论摘要', session.conclusion]
       ]} />}
+      {tab === '问诊主题' && <SimpleTable columns={['主题编号', '症状名称', '标准化症状', '当前模板', '模板版本', '是否主主题', '主题状态', '当前进度', '风险状态', '创建时间', '操作']} rows={(topics.length ? topics : [{ topicId: session.primaryTopicId, symptomName: session.normalizedSymptoms, normalizedSymptom: session.normalizedSymptoms, currentTemplateId: session.currentTemplateId, currentTemplateVersion: session.templateVersion, isPrimary: true, topicStatus: session.status, progress: session.progress, riskStatus: session.riskLevel, createdAt: session.startAt }]).map(topic => [String(topic.topicId), String(topic.symptomName), String(topic.normalizedSymptom), String(topic.currentTemplateId), String(topic.currentTemplateVersion), topic.isPrimary ? '主主题' : '非主主题', String(topic.topicStatus), String(topic.progress), String(topic.riskStatus), String(topic.createdAt), '查看详情 / 切换为当前主题 / 标记完成 / 取消主题'])} />}
       {tab === '完整对话' && <div className="round-list">{conversations.map((message, i) => <section key={i} className="round-card">
         <header><b>第 {message.round ?? i + 1} 轮</b><span>{message.time} · {message.type}</span><StatusTag value={String(message.template ?? `${session.currentTemplateId} · ${session.templateVersion}`)} /></header>
         <div className="round-dialog"><div><span>用户消息</span><p>{String(message.userMessage ?? message.content ?? session.chiefComplaint)}</p></div><div><span>{message.type === 'AI问诊结论' ? 'AI问诊结论' : 'AI问题'}</span><p>{String(message.aiMessage ?? message.content ?? session.conclusion)}</p></div></div>
@@ -51,7 +54,9 @@ export default function AiClinicSessionDetail({ sessionId, onNavigate }: { sessi
       {tab === '风险记录' && <SimpleTable columns={['风险规则', '命中内容', '命中时间', '风险等级', '是否中断', '系统动作', '人工复核']} rows={aiClinicRiskRecords.filter(r => r.sessionId === session.id).map(r => [r.rule, r.hitContent, r.hitAt, r.riskLevel, r.interrupted, r.action, r.review])} empty="本会话暂未命中高风险规则" />}
       {tab === '模板路由' && <InfoGrid items={[
         ['初始识别症状', session.normalizedSymptoms], ['初始模板', session.initialTemplateId || '未匹配'], ['候选模板', candidateTemplates(session)], ['候选置信度', session.templateMatchConfidence.toFixed(2)], ['当前模板', `${session.currentTemplateId} · ${session.templateName}`], ['最终模板', session.finalTemplateId || '未匹配'],
-        ['是否发生模板切换', session.initialTemplateId !== session.currentTemplateId ? '是' : '否'], ['切换原因', session.id === 'AIC202607130006' ? '多症状中胸闷风险优先，眼干和腹痛进入待处理列表' : '首轮模板命中后保持当前模板'], ['多症状待处理列表', session.multisymptom === '是' ? '眼干、腹痛' : '无']
+        ['是否发生模板切换', session.initialTemplateId !== session.currentTemplateId ? '是' : '否'], ['切换原因', switchReason(session.id)], ['多症状待处理列表', session.pendingTopicIds || (session.multisymptom === '是' ? '眼干、腹痛' : '无')],
+        ['模板锁定策略', '确认模板后软锁定，除用户确认切换、高风险强制中断、主诉纠正或原模板明显错误外不自动切换'],
+        ['新症状处理顺序', '先全局风险判断，再判断与当前主题相关性，不相关则创建待处理主题并询问用户']
       ]} />}
       {tab === '模型调用' && <SimpleTable columns={['调用阶段', 'Prompt名称', 'Prompt版本', '模型名称', '输入摘要', '输出摘要', 'Token数', '响应耗时', '是否成功']} rows={aiClinicModelCalls.filter(r => r.sessionId === session.id).map(r => [r.stage, r.prompt, r.version, r.model, r.input, r.output, r.tokens, r.latency, r.success])} empty="本会话模型调用记录已归档，当前仅展示摘要" />}
       {tab === '知识引用' && <SimpleTable columns={['知识标题', '资料类型', '来源级别', '关联结论内容', '审核状态']} rows={aiClinicKnowledgeRefs.filter(k => session.normalizedSymptoms.includes(String(k.symptom)) || session.department.includes(String(k.department).split('/')[0])).map(k => [k.title, k.type, k.sourceLevel, k.conclusionPart, k.audit])} empty="本会话未生成普通医学知识引用" />}
@@ -73,6 +78,13 @@ function displaySlotStatus(status: string) {
 }
 
 function candidateTemplates(session: { id: string; currentTemplateId: string; templateName: string }) {
+  if (session.id === 'AIC202607130011') return 'TMP002 眼部不适模板 / 0.90；手部不适 / 低置信度，暂不匹配具体模板'
   if (session.id === 'AIC202607130006') return 'TMP002 眼睛干涩问诊模板 / 0.74；TMP001 腹痛问诊模板 / 0.71；TMP003 胸痛问诊模板 / 0.88'
   return `${session.currentTemplateId} ${session.templateName} / 已选`
+}
+
+function switchReason(sessionId: string) {
+  if (sessionId === 'AIC202607130011') return '用户提到手部不适，系统未静默切换；创建 TOPIC-HAND-001 待处理并询问继续眼睛或切换手部问题'
+  if (sessionId === 'AIC202607130006') return '多症状中胸闷风险优先，眼干和腹痛进入待处理列表'
+  return '首轮模板命中后保持当前模板'
 }

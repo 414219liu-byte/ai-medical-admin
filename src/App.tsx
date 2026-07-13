@@ -6,6 +6,7 @@ import GenericPage from './pages/GenericPage'
 import AiClinicDashboard from './pages/ai-clinic/AiClinicDashboard'
 import AiClinicSessionDetail from './pages/ai-clinic/AiClinicSessionDetail'
 import AiClinicTemplateDetail from './pages/ai-clinic/AiClinicTemplateDetail'
+import AiClinicSlotsPage from './pages/ai-clinic/AiClinicSlotsPage'
 import { pageConfigs } from './mock/mockData'
 
 export default function App(){
@@ -17,6 +18,7 @@ export default function App(){
   return <Layout active={active} onNavigate={navigate} collapsed={collapsed} setCollapsed={setCollapsed}>
     {active==='dashboard'?<Dashboard onNavigate={navigate} onToast={setToast}/>:
       active==='ai-clinic/dashboard'?<AiClinicDashboard onNavigate={navigate}/>:
+      active==='ai-clinic/slots'?<AiClinicSlotsPage/>:
       active.startsWith('ai-clinic/sessions/')?<AiClinicSessionDetail sessionId={active.split('/').pop()??''} onNavigate={navigate}/>:
       active.startsWith('ai-clinic/templates/')?<AiClinicTemplateDetail templateId={active.split('/').pop()??''} onNavigate={navigate}/>:
       pageConfigs[active]?<GenericPage key={active} config={pageConfigs[active]} onNavigate={navigate} onToast={setToast}/>:null}

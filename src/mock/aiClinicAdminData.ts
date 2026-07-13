@@ -1,16 +1,17 @@
 import type { Column, PageConfig, RowData } from '../types'
-import type { AiClinicSession, ConsultationSlot, ConsultationTemplate, SlotValue } from '../types/ai-clinic'
+import type { AiClinicSession, ConsultationSlot, ConsultationTemplate, ConsultationTopic, GlobalSlotDefinition, SlotValue, TemplateSlotConfig } from '../types/ai-clinic'
 import { calculateConsultationProgress } from '../utils/calculateConsultationProgress'
 
 const col = (key: string, title: string, status = false, width?: number): Column => ({ key, title, status, width })
 
 export const aiClinicTemplates: ConsultationTemplate[] = [
-  { id: 'TMP001', name: '腹痛问诊模板', department: '消化内科', system: '消化系统', audience: '成人', slotCount: 12, coreSlotCount: 6, autoConclusionScore: '80分', bodyMap: '成人腹部图', directConclusion: '支持', version: 'V1.6', status: '已启用', updatedAt: '2026-07-13 09:40' },
-  { id: 'TMP002', name: '眼睛干涩问诊模板', department: '眼科', system: '眼部', audience: '全年龄', slotCount: 10, coreSlotCount: 5, autoConclusionScore: '80分', bodyMap: '双眼症状选择图', directConclusion: '支持', version: 'V2.0', status: '已启用', updatedAt: '2026-07-12 17:18' },
-  { id: 'TMP003', name: '胸痛问诊模板', department: '心内科/急诊', system: '循环系统', audience: '成人', slotCount: 11, coreSlotCount: 7, autoConclusionScore: '85分', bodyMap: '胸部图', directConclusion: '限制使用', version: 'V2.1', status: '已启用', updatedAt: '2026-07-13 08:22' },
-  { id: 'TMP004', name: '儿童发热问诊模板', department: '儿科', system: '感染/儿科', audience: '儿童', slotCount: 13, coreSlotCount: 7, autoConclusionScore: '80分', bodyMap: '儿童全身图', directConclusion: '支持', version: 'V1.8', status: '已启用', updatedAt: '2026-07-11 15:43' },
-  { id: 'TMP005', name: '下肢肿胀问诊模板', department: '血管外科/心内科', system: '循环系统', audience: '成人', slotCount: 9, coreSlotCount: 5, autoConclusionScore: '75分', bodyMap: '下肢示意图', directConclusion: '支持', version: 'V1.2', status: '灰度中', updatedAt: '2026-07-10 14:06' },
-  { id: 'TMP006', name: '呕血问诊模板', department: '消化内科/急诊', system: '消化系统', audience: '成人', slotCount: 8, coreSlotCount: 6, autoConclusionScore: '不自动结论', bodyMap: '无', directConclusion: '不支持', version: 'V1.4', status: '已启用', updatedAt: '2026-07-13 07:55' }
+  { id: 'TMP000', name: '通用症状初步评估模板', code: 'general_symptom_assessment', templateType: '通用兜底模板', standardSymptom: '未明确不适', department: '全科医学科', system: '全身', audience: '全年龄', priority: 10, slotCount: 10, coreSlotCount: 4, autoConclusionScore: '不输出明确疾病结论', directConclusionMinScore: '不支持', maxRounds: 6, riskScreeningRequired: '是', templateSwitchPolicy: '匹配成功后用户确认切换', multiSymptomParallel: '否', otherSymptomPolicy: '创建待处理主题', fallbackTemplateId: '—', promptRef: 'PMT-FLOW-000 V1.0', bodyMap: '通用身体部位图', directConclusion: '不支持', version: 'V1.0', publishStatus: '已发布', status: '已启用', lastPublishedAt: '2026-07-12 09:00', updatedAt: '2026-07-12 09:00' },
+  { id: 'TMP001', name: '腹痛问诊模板', code: 'abdominal_pain', templateType: '症状域模板', standardSymptom: '腹痛', department: '消化内科', system: '消化系统', audience: '成人', priority: 60, slotCount: 12, coreSlotCount: 6, autoConclusionScore: '80分', directConclusionMinScore: '30分', maxRounds: 10, riskScreeningRequired: '是', templateSwitchPolicy: '用户确认后允许', multiSymptomParallel: '否', otherSymptomPolicy: '加入待处理主题', fallbackTemplateId: 'TMP000', promptRef: 'PMT-FLOW-001 V1.6', bodyMap: 'MAP001 成人腹部图', directConclusion: '支持', version: 'V1.6', publishStatus: '已发布', status: '已启用', lastPublishedAt: '2026-07-13 09:40', updatedAt: '2026-07-13 09:40' },
+  { id: 'TMP002', name: '眼部不适模板', code: 'eye_discomfort', templateType: '症状域模板', standardSymptom: '眼红/眼干', department: '眼科', system: '眼部', audience: '全年龄', priority: 55, slotCount: 10, coreSlotCount: 5, autoConclusionScore: '80分', directConclusionMinScore: '30分', maxRounds: 9, riskScreeningRequired: '是', templateSwitchPolicy: '用户确认后允许', multiSymptomParallel: '否', otherSymptomPolicy: '加入待处理主题', fallbackTemplateId: 'TMP000', promptRef: 'PMT-FLOW-002 V2.0', bodyMap: 'MAP003 双眼症状选择图', directConclusion: '支持', version: 'V2.0', publishStatus: '已发布', status: '已启用', lastPublishedAt: '2026-07-12 17:18', updatedAt: '2026-07-12 17:18' },
+  { id: 'TMP003', name: '胸痛问诊模板', code: 'chest_pain', templateType: '高风险专用模板', standardSymptom: '胸痛', department: '心内科/急诊', system: '循环系统', audience: '成人', priority: 100, slotCount: 11, coreSlotCount: 7, autoConclusionScore: '85分', directConclusionMinScore: '50分', maxRounds: 7, riskScreeningRequired: '是', templateSwitchPolicy: '高风险可强制中断', multiSymptomParallel: '否', otherSymptomPolicy: '高风险优先', fallbackTemplateId: 'TMP000', promptRef: 'PMT-FLOW-003 V2.1', bodyMap: 'MAP004 胸部图', directConclusion: '限制使用', version: 'V2.1', publishStatus: '已发布', status: '已启用', lastPublishedAt: '2026-07-13 08:22', updatedAt: '2026-07-13 08:22' },
+  { id: 'TMP004', name: '儿童发热问诊模板', code: 'child_fever', templateType: '症状域模板', standardSymptom: '儿童发热', department: '儿科', system: '感染/儿科', audience: '儿童', priority: 70, slotCount: 13, coreSlotCount: 7, autoConclusionScore: '80分', directConclusionMinScore: '30分', maxRounds: 10, riskScreeningRequired: '是', templateSwitchPolicy: '用户确认后允许', multiSymptomParallel: '否', otherSymptomPolicy: '加入待处理主题', fallbackTemplateId: 'TMP000', promptRef: 'PMT-FLOW-004 V1.8', bodyMap: '儿童全身图', directConclusion: '支持', version: 'V1.8', publishStatus: '灰度中', status: '已启用', lastPublishedAt: '2026-07-11 15:43', updatedAt: '2026-07-11 15:43' },
+  { id: 'TMP005', name: '下肢肿胀问诊模板', code: 'leg_swelling', templateType: '症状域模板', standardSymptom: '下肢肿胀', department: '血管外科/心内科', system: '循环系统', audience: '成人', priority: 45, slotCount: 9, coreSlotCount: 5, autoConclusionScore: '75分', directConclusionMinScore: '30分', maxRounds: 8, riskScreeningRequired: '是', templateSwitchPolicy: '用户确认后允许', multiSymptomParallel: '否', otherSymptomPolicy: '加入待处理主题', fallbackTemplateId: 'TMP000', promptRef: 'PMT-FLOW-005 V1.2', bodyMap: '下肢示意图', directConclusion: '支持', version: 'V1.2', publishStatus: '未发布', status: '草稿', lastPublishedAt: '—', updatedAt: '2026-07-10 14:06' },
+  { id: 'TMP006', name: '呕血问诊模板', code: 'hematemesis', templateType: '高风险专用模板', standardSymptom: '呕血', department: '消化内科/急诊', system: '消化系统', audience: '成人', priority: 120, slotCount: 8, coreSlotCount: 6, autoConclusionScore: '不自动结论', directConclusionMinScore: '不支持', maxRounds: 5, riskScreeningRequired: '是', templateSwitchPolicy: '高风险可强制中断', multiSymptomParallel: '否', otherSymptomPolicy: '高风险优先', fallbackTemplateId: 'TMP000', promptRef: 'PMT-FLOW-006 V1.4', bodyMap: '无', directConclusion: '不支持', version: 'V1.4', publishStatus: '已发布', status: '已启用', lastPublishedAt: '2026-07-13 07:55', updatedAt: '2026-07-13 07:55' }
 ]
 
 export const abdominalSlots: ConsultationSlot[] = [
@@ -52,10 +53,94 @@ export const aiClinicTemplateSlots: Record<string, ConsultationSlot[]> = {
   TMP002: eyeDrynessSlots
 }
 
+export const globalSlotLibrary: GlobalSlotDefinition[] = [
+  ['GSLOT001', '主诉', 'chief_complaint', '主诉', '文本', '文本确认、单选', '是', 6],
+  ['GSLOT002', '持续时间', 'duration', '时间', '时间/枚举', '快捷选项、自由输入', '是', 6],
+  ['GSLOT003', '疼痛部位', 'pain_location', '症状部位', '枚举', '身体部位图、文本', '是', 3],
+  ['GSLOT004', '疼痛程度', 'pain_severity', '症状程度', '量表', '评分量表、快捷选项', '是', 3],
+  ['GSLOT005', '伴随症状', 'companions', '伴随症状', '多选', '多选、自由输入', '是', 6],
+  ['GSLOT006', '危险症状', 'red_flags', '安全筛查', '多选', '风险确认、快捷选项', '是', 6],
+  ['GSLOT007', '既往疾病', 'past_history', '既往史', '多选', '多选、自由输入', '是', 5],
+  ['GSLOT008', '当前用药', 'medication', '用药', '文本/药品', '文本、药盒识别', '是', 5],
+  ['GSLOT009', '检查报告', 'reports', '资料', '文件/文本', '报告上传、快捷选项', '是', 5],
+  ['GSLOT010', '单眼或双眼', 'eye_side', '症状部位', '枚举', '快捷选项、眼部图', '是', 1]
+].map(([id, standardName, code, category, dataType, components, standardizable, referencedTemplates]) => ({
+  id: String(id), standardName: String(standardName), code: String(code), category: String(category), dataType: String(dataType), components: String(components),
+  standardizable: String(standardizable), referencedTemplates: Number(referencedTemplates), status: '已启用', updatedAt: '2026-07-13 10:20'
+}))
+
+const standardSlotMap: Record<string, string> = {
+  chief_complaint: 'GSLOT001',
+  duration: 'GSLOT002',
+  pain_location: 'GSLOT003',
+  severity: 'GSLOT004',
+  nature: 'GSLOT005',
+  companions: 'GSLOT005',
+  red_flags: 'GSLOT006',
+  past_history: 'GSLOT007',
+  medication: 'GSLOT008',
+  reports: 'GSLOT009',
+  eye_side: 'GSLOT010',
+  eye_use_trigger: 'GSLOT005',
+  contact_lens_operation: 'GSLOT005',
+  trigger: 'GSLOT005',
+  relief: 'GSLOT005'
+}
+
+export const templateSlotConfigs: TemplateSlotConfig[] = [...abdominalSlots, ...eyeDrynessSlots].map(slot => {
+  const isChief = slot.code === 'chief_complaint'
+  const isRisk = slot.code === 'red_flags'
+  const isLocation = slot.code === 'pain_location'
+  const negativeCompletionRule = isChief
+    ? '否定主诉不计分，当前模板失效并进入退出或重新匹配'
+    : isLocation
+      ? '否定部位不计分，标记回答无效并重新确认主诉'
+      : isRisk || ['companions', 'past_history', 'medication', 'reports'].includes(slot.code)
+        ? '否定回答视为有效阴性信息，槽位完成'
+        : '按槽位语义判断，需用户确认'
+  return {
+    ...slot,
+    standardSlotId: standardSlotMap[slot.code] ?? 'GSLOT005',
+    templateVersion: slot.templateId === 'TMP001' ? 'V1.6' : 'V2.0',
+    question: defaultQuestion(slot.name),
+    quickOptionGroup: slot.component.includes('快捷') || slot.component.includes('多选') ? `${slot.templateId}-${slot.code}-options` : '无',
+    freeInput: '是',
+    multiSelect: slot.component.includes('多选') ? '是' : '否',
+    negativeCompletionRule,
+    unknownAllowed: slot.allowUnknown ? '是' : '否',
+    unknownCoefficient: slot.allowUnknown ? 0.3 : 0,
+    unknownCompletesCore: slot.core ? '否' : '按配置',
+    effectiveMinCoefficient: slot.core ? 0.6 : 0.3,
+    continueAskWhenUnknown: slot.core ? '是' : '否',
+    maxAsk: slot.core ? 2 : 1,
+    preSlot: slot.order === 1 ? '无' : '上一核心槽位',
+    displayCondition: '当前主题仍锁定在本模板',
+    skipCondition: slot.required ? '不可跳过' : '用户明确不适用或已完成高优先级核心槽位',
+    nextNode: slot.code === 'red_flags' ? '判断是否达到结论条件' : '选择下一个未完成高优先级槽位',
+    negativeRoute: isChief ? '模板退出/重新匹配' : '记录有效阴性或重新确认',
+    conflictRoute: '进入冲突确认节点',
+    triggerTemplateExit: isChief ? '是' : '否',
+    triggerRematch: isChief ? '是' : '否',
+    riskCheck: '每轮执行'
+  }
+})
+
+function defaultQuestion(name: string) {
+  const map: Record<string, string> = {
+    主诉确认: '请确认这次主要想咨询的不适是什么？',
+    疼痛部位: '请指出最明显不适的位置。',
+    持续时间: '这种情况大概出现多久了？',
+    单眼或双眼: '是一只眼睛明显，还是两只眼睛都有？',
+    危险症状筛查: '是否出现需要立即就医的危险信号？'
+  }
+  return map[name] ?? `请补充${name}相关信息。`
+}
+
 const templateById = Object.fromEntries(aiClinicTemplates.map(t => [t.id, t]))
 
 export const aiClinicSessions: AiClinicSession[] = [
   ['AIC202607130001', 'U100238', '林志明', 'P100238', '林志明', '本人', 33, '男', '双眼干涩、畏光', '眼干、畏光、异物感', 'TMP002', '普通风险', '已生成自动结论', '自动结论', 7, '否', '否', '2026-07-13 08:41', '2026-07-13 08:49', '眼科', '双眼干涩持续时间较长，建议眼科门诊评估干眼相关情况。'],
+  ['AIC202607130011', 'U100238', '林志明', 'P100238', '林志明', '本人', 33, '男', '眼红，后续提到手又有点不舒服', '眼红、手部不适', 'TMP002', '普通风险', '问诊中', '未生成', 2, '是', '否', '2026-07-13 12:10', '—', '眼科', '已识别眼红为当前主题，并将手部不适加入待处理主题，眼部进度保持20%。'],
   ['AIC202607130002', 'U100516', '陈雅琴', 'P100517', '陈小雨', '女儿', 6, '女', '发热38.6℃', '发热、轻咳', 'TMP004', '关注风险', '已生成自动结论', '自动结论', 6, '否', '否', '2026-07-13 09:08', '2026-07-13 09:16', '儿科', '儿童发热伴轻咳，暂未命中急症规则，建议观察精神状态和补液。'],
   ['AIC202607130003', 'U100628', '张国华', 'P100628', '张国华', '本人', 58, '男', '胸痛、出冷汗、左臂酸痛', '胸痛、冷汗、左臂不适', 'TMP003', '120急救', '高风险中断', '安全提示', 2, '否', '否', '2026-07-13 09:22', '2026-07-13 09:24', '急诊科', '胸痛伴冷汗及左臂不适，优先提示立即呼叫120，不继续普通问诊。'],
   ['AIC202607130004', 'U100739', '王丽', 'P100739', '王丽', '本人', 29, '女', '右下腹疼痛3天', '右下腹痛、恶心', 'TMP001', '建议尽快就医', '已生成自动结论', '直接结论', 5, '否', '否', '2026-07-13 10:02', '2026-07-13 10:11', '消化内科/普外科', '右下腹痛持续3天，信息有限但需关注阑尾相关风险，建议尽快就医。'],
@@ -76,7 +161,11 @@ export const aiClinicSessions: AiClinicSession[] = [
     modelVersion: String(riskLevel).includes('120') ? 'medical-safety-v3.0' : 'medical-language-b-v2.4',
     progress: '0%', riskLevel: String(riskLevel) === '非医疗' ? '—' : String(riskLevel), status: String(status), conclusionType: String(conclusionType), rounds: Number(rounds), multisymptom: String(multisymptom),
     hasUpload: String(hasUpload), startAt: String(startAt), endAt: String(endAt), createdAt: String(startAt), updatedAt: String(endAt), department: String(department),
-    conclusion: String(conclusion), clickedDirectConclusion: conclusionType === '直接结论' ? '是' : '否', endReason: String(status), name: `${patientName} ${chiefComplaint}`
+    conclusion: String(conclusion), clickedDirectConclusion: conclusionType === '直接结论' ? '是' : '否', endReason: String(status), name: `${patientName} ${chiefComplaint}`,
+    currentTopicId: String(id) === 'AIC202607130011' ? 'TOPIC-EYE-001' : `TOPIC-${String(id).slice(-3)}-PRIMARY`,
+    primaryTopicId: String(id) === 'AIC202607130011' ? 'TOPIC-EYE-001' : `TOPIC-${String(id).slice(-3)}-PRIMARY`,
+    topicIds: String(id) === 'AIC202607130011' ? 'TOPIC-EYE-001,TOPIC-HAND-001' : `TOPIC-${String(id).slice(-3)}-PRIMARY`,
+    pendingTopicIds: String(id) === 'AIC202607130011' ? 'TOPIC-HAND-001' : ''
   }
 })
 const multiSymptomSession = aiClinicSessions.find(session => session.id === 'AIC202607130006')
@@ -105,6 +194,7 @@ const abdominalSlotValues: SlotValue[] = [
 
 export const aiClinicSlotValues: SlotValue[] = [
   ...abdominalSlotValues,
+  { slotId: 'EYE-01', sessionId: 'AIC202607130011', value: '眼红', raw: '眼红', source: '用户文本', status: '用户明确输入', confidence: 0.95, updatedAt: '2026-07-13 12:10' },
   { slotId: 'EYE-01', sessionId: 'AIC202607130001', value: '双眼干涩、畏光', raw: '我眼睛很干，还有点怕光', source: '用户文本', status: '用户明确输入', confidence: 0.98, updatedAt: '2026-07-13 08:42' },
   { slotId: 'EYE-02', sessionId: 'AIC202607130001', value: '2年，加重1周', raw: '两年了，最近一周重一点', source: '用户文本', status: '用户明确输入', confidence: 0.96, updatedAt: '2026-07-13 08:43' },
   { slotId: 'EYE-03', sessionId: 'AIC202607130001', value: '双眼均有', raw: '快捷选项：双眼都有', source: '快捷选项', status: '快捷选项', confidence: 1, updatedAt: '2026-07-13 08:44' },
@@ -120,7 +210,16 @@ export const sessionProgress = Object.fromEntries(aiClinicSessions.map(session =
   if (slots.length) return [session.id, calculateConsultationProgress(aiClinicSlotValues.filter(v => v.sessionId === session.id), slots, { patientConfirmed: true, chiefComplaintIdentified: true, riskScreeningDone: true, highRiskTriggered: ['高风险中断', '120中断', '心理危机暂停'].includes(session.status) })]
   return [session.id, calculateConsultationProgress([], [], { chiefComplaintIdentified: false })]
 }))
+sessionProgress.AIC202607130011 = { ...sessionProgress.AIC202607130011, score: 20, percent: 20, cappedPercent: 20 }
 aiClinicSessions.forEach(session => { session.progress = `${sessionProgress[session.id].cappedPercent}%` })
+
+export const consultationTopics: ConsultationTopic[] = [
+  { topicId: 'TOPIC-EYE-001', sessionId: 'AIC202607130011', symptomName: '眼红', normalizedSymptom: '眼红', bodySystem: '眼部', currentTemplateId: 'TMP002', currentTemplateVersion: 'V2.0', topicStatus: '问诊中', isPrimary: true, sourceMessageId: 'MSG-AIC011-001', matchConfidence: '0.90', progress: '20%', riskStatus: '普通风险', createdAt: '2026-07-13 12:10', updatedAt: '2026-07-13 12:11' },
+  { topicId: 'TOPIC-HAND-001', sessionId: 'AIC202607130011', symptomName: '手部不适', normalizedSymptom: '手部不适', bodySystem: '骨骼肌肉/神经系统', currentTemplateId: '暂未匹配模板', currentTemplateVersion: '—', topicStatus: '待处理', isPrimary: false, sourceMessageId: 'MSG-AIC011-002', matchConfidence: '低', progress: '0%', riskStatus: '暂未发现明显高风险', createdAt: '2026-07-13 12:11', updatedAt: '2026-07-13 12:11' },
+  { topicId: 'TOPIC-MULTI-001', sessionId: 'AIC202607130006', symptomName: '胸闷', normalizedSymptom: '胸闷/胸痛风险', bodySystem: '循环系统', currentTemplateId: 'TMP003', currentTemplateVersion: 'V2.1', topicStatus: '高风险中断', isPrimary: true, sourceMessageId: 'MSG-AIC006-001', matchConfidence: '0.88', progress: '中断', riskStatus: '高风险', createdAt: '2026-07-13 10:30', updatedAt: '2026-07-13 10:34' },
+  { topicId: 'TOPIC-MULTI-002', sessionId: 'AIC202607130006', symptomName: '眼干', normalizedSymptom: '眼干', bodySystem: '眼部', currentTemplateId: 'TMP002', currentTemplateVersion: 'V2.0', topicStatus: '待处理', isPrimary: false, sourceMessageId: 'MSG-AIC006-001', matchConfidence: '0.74', progress: '0%', riskStatus: '暂未发现明显高风险', createdAt: '2026-07-13 10:30', updatedAt: '2026-07-13 10:34' },
+  { topicId: 'TOPIC-MULTI-003', sessionId: 'AIC202607130006', symptomName: '腹痛', normalizedSymptom: '腹痛', bodySystem: '消化系统', currentTemplateId: 'TMP001', currentTemplateVersion: 'V1.6', topicStatus: '待处理', isPrimary: false, sourceMessageId: 'MSG-AIC006-001', matchConfidence: '0.71', progress: '0%', riskStatus: '暂未发现明显高风险', createdAt: '2026-07-13 10:30', updatedAt: '2026-07-13 10:34' }
+]
 
 function normalizeSlotStatus(status: string): SlotValue['status'] {
   const map: Record<string, SlotValue['status']> = {
@@ -145,6 +244,12 @@ function sourceFromStatus(status: string) {
 }
 
 export const aiClinicConversation: Record<string, RowData[]> = {
+  AIC202607130011: [
+    { round: 1, time: '12:10:02', userMessage: '眼红。', aiMessage: '这种情况大概出现多久了？是一只眼睛明显，还是两只眼睛都红？', template: 'TMP002 · V2.0', node: '确认眼红主题并询问持续时间/单眼双眼', slotUpdated: '创建主题 TOPIC-EYE-001；EYE-01 主诉确认 +20分', scoreChange: '+20', progressChange: '0% → 20%', riskChecked: '全局风险判断：未命中高风险', latency: '0.8s', type: 'AI问题' },
+    { round: 2, time: '12:11:18', userMessage: '手又有点不舒服了。', aiMessage: '我记下你还有手部不适。手部不适可能有不同表现，稍后可以继续了解。现在你想先继续眼睛的问题，还是切换到手部问题？', template: 'TMP002 · V2.0', node: '新症状识别与主题确认', slotUpdated: '创建待处理主题 TOPIC-HAND-001；不写入眼部槽位', scoreChange: '+0', progressChange: '20% → 20%', riskChecked: '先执行全局风险判断：暂未发现明显高风险', latency: '1.0s', type: 'AI问题', quickOptions: '继续眼睛问题 / 先处理手部不适 / 稍后再处理手部问题' },
+    { round: 3, time: '12:11:45', userMessage: '继续眼睛问题。', aiMessage: '好的，我们先继续眼睛的问题。刚才想确认一下，眼红大概持续多久了？是一只眼睛还是两只眼睛都红？', template: 'TMP002 · V2.0', node: '重新进入未完成核心槽位：持续时间/单眼双眼', slotUpdated: '用户选择继续当前主题；手部主题保持待处理', scoreChange: '+0', progressChange: '20% → 20%', riskChecked: '当前主题继续，未跳过未回答槽位', latency: '0.7s', type: 'AI问题' },
+    { round: '系统事件', time: '12:11:19', userMessage: '识别到新的问诊主题：手部不适', aiMessage: '已加入待处理列表，当前眼部问诊进度不变。用户稍后可选择切换为当前主题。', template: '主题管理', node: '待处理主题创建', slotUpdated: 'TOPIC-HAND-001', scoreChange: '+0', progressChange: '眼部20%，手部0%', riskChecked: '已执行', latency: '—', type: '系统事件' }
+  ],
   AIC202607130001: [
     { round: 1, time: '08:41:12', userMessage: '我眼睛很干，还有点怕光。', aiMessage: '已收到。请确认这次主要是不适集中在眼睛干涩、畏光吗？', template: 'TMP002 · V2.0', node: '确认眼干主诉', slotUpdated: 'EYE-01 主诉确认 +15分', scoreChange: '+15', progressChange: '0% → 15%', riskChecked: '未命中高风险', latency: '0.8s', type: 'AI问题' },
     { round: 2, time: '08:42:08', userMessage: '是的，主要就是眼睛干，像有东西磨。', aiMessage: '这种情况大概持续多久了？最近是否有明显加重？', template: 'TMP002 · V2.0', node: '询问持续时间', slotUpdated: 'EYE-04 伴随症状待完善', scoreChange: '+0', progressChange: '15% → 15%', riskChecked: '未命中高风险', latency: '0.9s', type: 'AI问题' },
@@ -205,14 +310,16 @@ export const aiClinicPageConfigs: Record<string, PageConfig> = {
     { key: 'hasUpload', label: '是否上传资料', options: ['全部', '是', '否'] }
   ], '新增测试会话', ['查看', '发起质检', '标记异常', '加入测试用例']),
   'ai-clinic/templates': makeConfig('ai-clinic/templates', 'AI诊室 · 问诊模板', '管理症状模板、槽位数量、结论阈值、部位图和版本状态', [
-    col('id', '模板编号'), col('name', '模板名称'), col('department', '所属科室'), col('audience', '适用人群'), col('slotCount', '槽位数量'), col('coreSlotCount', '核心槽位'), col('autoConclusionScore', '自动结论阈值'), col('bodyMap', '身体部位图'), col('directConclusion', '直接结论'), col('version', '当前版本'), col('status', '状态', status), col('updatedAt', '更新时间')
+    col('id', '模板编号'), col('name', '模板名称'), col('templateType', '模板类型'), col('department', '所属科室'), col('audience', '适用人群'), col('slotCount', '槽位数量'), col('coreSlotCount', '核心槽位数量'), col('autoConclusionScore', '自动结论阈值'), col('bodyMap', '身体部位图'), col('directConclusion', '直接结论'), col('version', '当前版本'), col('publishStatus', '发布状态', status), col('status', '模板状态', status), col('updatedAt', '更新时间')
   ], aiClinicTemplates, [
     { key: 'department', label: '所属科室', options: ['全部', '消化内科', '眼科', '心内科/急诊', '儿科', '血管外科/心内科', '消化内科/急诊'] },
+    { key: 'templateType', label: '模板类型', options: ['全部', '通用兜底模板', '症状域模板', '高风险专用模板', '疾病复诊模板'] },
     { key: 'audience', label: '适用人群', options: ['全部', '成人', '儿童', '全年龄'] },
     { key: 'bodyMap', label: '支持部位图', options: ['全部', '成人腹部图', '双眼症状选择图', '胸部图', '儿童全身图', '无'] },
     { key: 'directConclusion', label: '直接结论', options: ['全部', '支持', '限制使用', '不支持'] },
-    { key: 'status', label: '模板状态', options: ['全部', '已启用', '灰度中', '草稿', '已停用'] }
-  ], '新增问诊模板', ['查看', '编辑', '停用', '删除']),
+    { key: 'status', label: '模板状态', options: ['全部', '草稿', '已启用', '已停用'] },
+    { key: 'publishStatus', label: '发布状态', options: ['全部', '未发布', '灰度中', '已发布', '已回滚'] }
+  ], '新增问诊模板', ['查看', '创建新版本', '复制', '停用', '查看使用记录']),
   'ai-clinic/slots': makeConfig('ai-clinic/slots', 'AI诊室 · 槽位配置', '配置腹痛模板槽位权重、展示组件、完成规则和确认策略', [
     col('order', '顺序'), col('name', '槽位名称'), col('category', '槽位分类'), col('component', '展示组件'), col('requiredText', '必填', status), col('coreText', '核心槽位', status), col('weight', '权重'), col('noCountsText', '“没有”计分', status), col('allowUnknownText', '允许不清楚', status), col('needConfirmText', '需确认', status), col('status', '状态', status)
   ], abdominalSlots.map(s => ({ ...s, requiredText: s.required ? '是' : '否', coreText: s.core ? '是' : '否', noCountsText: s.noCounts ? '是' : '否', allowUnknownText: s.allowUnknown ? '是' : '否', needConfirmText: s.needConfirm ? '是' : '否' })), [
@@ -233,6 +340,12 @@ export const aiClinicPageConfigs: Record<string, PageConfig> = {
     col('id', '知识编号'), col('title', '知识标题'), col('department', '所属科室'), col('symptom', '关联症状'), col('type', '资料类型'), col('sourceLevel', '来源级别', status), col('audit', '审核状态', status), col('valid', '有效状态', status), col('updatedAt', '更新时间')
   ], aiClinicKnowledgeRefs, [{ key: 'department', label: '所属科室', options: ['全部', '消化内科', '眼科', '心内科', '儿科', '急诊科'] }, { key: 'sourceLevel', label: '来源级别', options: ['全部', '高', '中', '低'] }], '新增知识资料')
 }
+
+Object.assign(aiClinicPageConfigs['ai-clinic/templates'], {
+  searchPlaceholder: '搜索模板名称、模板编号、症状关键词',
+  hideStatusFilter: true,
+  dateLabel: '更新时间'
+})
 
 const simplePages: Array<[string, string, string, Column[], RowData[]]> = [
   ['ai-clinic/flows', 'AI诊室 · 问诊流程', '维护模板节点、分支、跳过条件与风险动作', [col('id', '节点编号'), col('order', '顺序'), col('name', '节点名称'), col('type', '节点类型'), col('slot', '绑定槽位'), col('precondition', '前置条件'), col('skip', '跳过条件'), col('next', '默认下一节点'), col('branches', '分支数量'), col('status', '状态', status)], [
@@ -321,6 +434,15 @@ const simplePages: Array<[string, string, string, Column[], RowData[]]> = [
 simplePages.forEach(([key, title, description, columns, rows]) => {
   aiClinicPageConfigs[key] = makeConfig(key, title, description, columns, rows, [{ key: 'status', label: '状态', options: ['全部', '已启用', '已发布', '灰度中', '待发布', '已停用', '通过', '成功'] }], title.includes('质检') ? '新增测试用例' : title.includes('版本') ? '创建发布版本' : '新增配置', key.includes('quality') ? ['查看详情', '执行', '编辑', '删除'] : ['查看详情', '编辑', '停用', '删除'])
 })
+
+aiClinicPageConfigs['ai-clinic/multi-symptom-rules'] = makeConfig('ai-clinic/multi-symptom-rules', 'AI诊室 · 多症状规则', '配置每轮风险优先、主题相关性判断、待处理主题和用户确认切换规则', [
+  col('id', '规则编号'), col('name', '规则名称'), col('scene', '适用场景'), col('riskFirst', '先执行风险判断', status), col('relevanceMethod', '症状相关性判断方式'), col('relatedAction', '相关症状处理'), col('unrelatedAction', '不相关症状处理'), col('needConfirm', '需要用户确认', status), col('autoSwitch', '允许自动切换', status), col('pendingLimit', '待处理主题上限'), col('afterCurrent', '当前主题完成后处理'), col('status', '状态', status)
+], [
+  { id: 'MULTI001', name: '每轮新症状处理默认规则', scene: '当前模板问诊中出现新症状', riskFirst: '是', relevanceMethod: '症状系统+槽位语义+当前主题关联度', relatedAction: '写入当前主题槽位', unrelatedAction: '创建待处理主题', needConfirm: '是', autoSwitch: '否', pendingLimit: '3个', afterCurrent: '询问是否继续处理待处理主题', status: '已启用' },
+  { id: 'MULTI002', name: '高风险症状强制中断', scene: '新症状命中脑卒中、胸痛、呕血、心理危机等规则', riskFirst: '是', relevanceMethod: '全局安全模型优先', relatedAction: '暂停当前主题并输出安全提示', unrelatedAction: '创建高风险主题并强制中断', needConfirm: '否', autoSwitch: '仅高风险允许', pendingLimit: '不受限制', afterCurrent: '高风险处理优先', status: '已启用' },
+  { id: 'MULTI003', name: '可合并消化道症状', scene: '肚子疼、恶心、腹泻同时出现', riskFirst: '是', relevanceMethod: '同一系统且可写入伴随症状', relatedAction: '合并进入腹痛模板', unrelatedAction: '不创建独立主题', needConfirm: '否', autoSwitch: '否', pendingLimit: '3个', afterCurrent: '随主主题完成', status: '已启用' },
+  { id: 'MULTI004', name: '跨系统普通症状', scene: '眼睛干、膝盖疼、手麻等跨系统普通症状', riskFirst: '是', relevanceMethod: '身体系统不同且无槽位承接', relatedAction: '当前主题继续', unrelatedAction: '创建待处理主题并询问用户', needConfirm: '是', autoSwitch: '否', pendingLimit: '3个', afterCurrent: '询问是否切换待处理主题', status: '已启用' }
+], [{ key: 'status', label: '状态', options: ['全部', '已启用', '已停用'] }, { key: 'riskFirst', label: '先执行风险判断', options: ['全部', '是', '否'] }, { key: 'autoSwitch', label: '允许自动切换', options: ['全部', '否', '仅高风险允许'] }], '新增多症状规则', ['查看详情', '编辑', '停用'])
 
 export const aiClinicMenuItems = [
   ['ai-clinic/dashboard', '诊室工作台'],
