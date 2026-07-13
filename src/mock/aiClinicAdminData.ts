@@ -1,17 +1,17 @@
 import type { Column, PageConfig, RowData } from '../types'
-import type { AiClinicSession, ConsultationSlot, ConsultationTemplate, ConsultationTopic, GlobalSlotDefinition, SlotValue, TemplateSlotConfig } from '../types/ai-clinic'
+import type { AiClinicSession, ConsultationSlot, ConsultationTemplate, ConsultationTopic, GlobalSlotDefinition, SlotValue, TemplateSlotBinding, TemplateSlotConfig } from '../types/ai-clinic'
 import { calculateConsultationProgress } from '../utils/calculateConsultationProgress'
 
 const col = (key: string, title: string, status = false, width?: number): Column => ({ key, title, status, width })
 
 export const aiClinicTemplates: ConsultationTemplate[] = [
-  { id: 'TMP000', name: '通用症状初步评估模板', code: 'general_symptom_assessment', templateType: '通用兜底模板', standardSymptom: '未明确不适', department: '全科医学科', system: '全身', audience: '全年龄', priority: 10, slotCount: 10, coreSlotCount: 4, autoConclusionScore: '不输出明确疾病结论', directConclusionMinScore: '不支持', maxRounds: 6, riskScreeningRequired: '是', templateSwitchPolicy: '匹配成功后用户确认切换', multiSymptomParallel: '否', otherSymptomPolicy: '创建待处理主题', fallbackTemplateId: '—', promptRef: 'PMT-FLOW-000 V1.0', bodyMap: '通用身体部位图', directConclusion: '不支持', version: 'V1.0', publishStatus: '已发布', status: '已启用', lastPublishedAt: '2026-07-12 09:00', updatedAt: '2026-07-12 09:00' },
-  { id: 'TMP001', name: '腹痛问诊模板', code: 'abdominal_pain', templateType: '症状域模板', standardSymptom: '腹痛', department: '消化内科', system: '消化系统', audience: '成人', priority: 60, slotCount: 12, coreSlotCount: 6, autoConclusionScore: '80分', directConclusionMinScore: '30分', maxRounds: 10, riskScreeningRequired: '是', templateSwitchPolicy: '用户确认后允许', multiSymptomParallel: '否', otherSymptomPolicy: '加入待处理主题', fallbackTemplateId: 'TMP000', promptRef: 'PMT-FLOW-001 V1.6', bodyMap: 'MAP001 成人腹部图', directConclusion: '支持', version: 'V1.6', publishStatus: '已发布', status: '已启用', lastPublishedAt: '2026-07-13 09:40', updatedAt: '2026-07-13 09:40' },
-  { id: 'TMP002', name: '眼部不适模板', code: 'eye_discomfort', templateType: '症状域模板', standardSymptom: '眼红/眼干', department: '眼科', system: '眼部', audience: '全年龄', priority: 55, slotCount: 10, coreSlotCount: 5, autoConclusionScore: '80分', directConclusionMinScore: '30分', maxRounds: 9, riskScreeningRequired: '是', templateSwitchPolicy: '用户确认后允许', multiSymptomParallel: '否', otherSymptomPolicy: '加入待处理主题', fallbackTemplateId: 'TMP000', promptRef: 'PMT-FLOW-002 V2.0', bodyMap: 'MAP003 双眼症状选择图', directConclusion: '支持', version: 'V2.0', publishStatus: '已发布', status: '已启用', lastPublishedAt: '2026-07-12 17:18', updatedAt: '2026-07-12 17:18' },
-  { id: 'TMP003', name: '胸痛问诊模板', code: 'chest_pain', templateType: '高风险专用模板', standardSymptom: '胸痛', department: '心内科/急诊', system: '循环系统', audience: '成人', priority: 100, slotCount: 11, coreSlotCount: 7, autoConclusionScore: '85分', directConclusionMinScore: '50分', maxRounds: 7, riskScreeningRequired: '是', templateSwitchPolicy: '高风险可强制中断', multiSymptomParallel: '否', otherSymptomPolicy: '高风险优先', fallbackTemplateId: 'TMP000', promptRef: 'PMT-FLOW-003 V2.1', bodyMap: 'MAP004 胸部图', directConclusion: '限制使用', version: 'V2.1', publishStatus: '已发布', status: '已启用', lastPublishedAt: '2026-07-13 08:22', updatedAt: '2026-07-13 08:22' },
-  { id: 'TMP004', name: '儿童发热问诊模板', code: 'child_fever', templateType: '症状域模板', standardSymptom: '儿童发热', department: '儿科', system: '感染/儿科', audience: '儿童', priority: 70, slotCount: 13, coreSlotCount: 7, autoConclusionScore: '80分', directConclusionMinScore: '30分', maxRounds: 10, riskScreeningRequired: '是', templateSwitchPolicy: '用户确认后允许', multiSymptomParallel: '否', otherSymptomPolicy: '加入待处理主题', fallbackTemplateId: 'TMP000', promptRef: 'PMT-FLOW-004 V1.8', bodyMap: '儿童全身图', directConclusion: '支持', version: 'V1.8', publishStatus: '灰度中', status: '已启用', lastPublishedAt: '2026-07-11 15:43', updatedAt: '2026-07-11 15:43' },
-  { id: 'TMP005', name: '下肢肿胀问诊模板', code: 'leg_swelling', templateType: '症状域模板', standardSymptom: '下肢肿胀', department: '血管外科/心内科', system: '循环系统', audience: '成人', priority: 45, slotCount: 9, coreSlotCount: 5, autoConclusionScore: '75分', directConclusionMinScore: '30分', maxRounds: 8, riskScreeningRequired: '是', templateSwitchPolicy: '用户确认后允许', multiSymptomParallel: '否', otherSymptomPolicy: '加入待处理主题', fallbackTemplateId: 'TMP000', promptRef: 'PMT-FLOW-005 V1.2', bodyMap: '下肢示意图', directConclusion: '支持', version: 'V1.2', publishStatus: '未发布', status: '草稿', lastPublishedAt: '—', updatedAt: '2026-07-10 14:06' },
-  { id: 'TMP006', name: '呕血问诊模板', code: 'hematemesis', templateType: '高风险专用模板', standardSymptom: '呕血', department: '消化内科/急诊', system: '消化系统', audience: '成人', priority: 120, slotCount: 8, coreSlotCount: 6, autoConclusionScore: '不自动结论', directConclusionMinScore: '不支持', maxRounds: 5, riskScreeningRequired: '是', templateSwitchPolicy: '高风险可强制中断', multiSymptomParallel: '否', otherSymptomPolicy: '高风险优先', fallbackTemplateId: 'TMP000', promptRef: 'PMT-FLOW-006 V1.4', bodyMap: '无', directConclusion: '不支持', version: 'V1.4', publishStatus: '已发布', status: '已启用', lastPublishedAt: '2026-07-13 07:55', updatedAt: '2026-07-13 07:55' }
+  { id: 'TMP000', name: '通用症状初步评估模板', code: 'general_symptom_assessment', templateType: '通用兜底模板', standardSymptom: '未明确不适', department: '全科医学科', system: '全身', audience: '全年龄', priority: 10, slotCount: 11, coreSlotCount: 7, autoConclusionScore: '不自动结论', evaluationOutputThreshold: '70分', outputStrategy: '不输出明确疾病结论', directConclusionMinScore: '不支持', maxRounds: 6, riskScreeningRequired: '是', templateSwitchPolicy: '匹配成功后用户确认切换', multiSymptomParallel: '否', otherSymptomPolicy: '创建待处理主题', fallbackTemplateId: '—', promptRef: 'PMT-FLOW-000 V1.0', bodyMap: '通用身体部位图', directConclusion: '不支持', version: 'V1.0', publishStatus: '已发布', status: '已启用', lastPublishedAt: '2026-07-12 09:00', updatedAt: '2026-07-12 09:00' },
+  { id: 'TMP001', name: '腹痛问诊模板', code: 'abdominal_pain', templateType: '症状域模板', standardSymptom: '腹痛', department: '消化内科', system: '消化系统', audience: '成人', priority: 60, slotCount: 12, coreSlotCount: 6, autoConclusionScore: '80分', evaluationOutputThreshold: '80分', outputStrategy: '允许生成问诊结论', directConclusionMinScore: '30分', maxRounds: 10, riskScreeningRequired: '是', templateSwitchPolicy: '用户确认后允许', multiSymptomParallel: '否', otherSymptomPolicy: '加入待处理主题', fallbackTemplateId: 'TMP000', promptRef: 'PMT-FLOW-001 V1.6', bodyMap: 'MAP001 成人腹部图', directConclusion: '支持', version: 'V1.6', publishStatus: '已发布', status: '已启用', lastPublishedAt: '2026-07-13 09:40', updatedAt: '2026-07-13 09:40' },
+  { id: 'TMP002', name: '眼部不适模板', code: 'eye_discomfort', templateType: '症状域模板', standardSymptom: '眼红/眼干', department: '眼科', system: '眼部', audience: '全年龄', priority: 55, slotCount: 10, coreSlotCount: 5, autoConclusionScore: '80分', evaluationOutputThreshold: '80分', outputStrategy: '允许生成问诊结论', directConclusionMinScore: '30分', maxRounds: 9, riskScreeningRequired: '是', templateSwitchPolicy: '用户确认后允许', multiSymptomParallel: '否', otherSymptomPolicy: '加入待处理主题', fallbackTemplateId: 'TMP000', promptRef: 'PMT-FLOW-002 V2.0', bodyMap: 'MAP003 双眼症状选择图', directConclusion: '支持', version: 'V2.0', publishStatus: '已发布', status: '已启用', lastPublishedAt: '2026-07-12 17:18', updatedAt: '2026-07-12 17:18' },
+  { id: 'TMP003', name: '胸痛问诊模板', code: 'chest_pain', templateType: '高风险专用模板', standardSymptom: '胸痛', department: '心内科/急诊', system: '循环系统', audience: '成人', priority: 100, slotCount: 11, coreSlotCount: 7, autoConclusionScore: '85分', evaluationOutputThreshold: '85分', outputStrategy: '未排除高风险时禁止普通结论', directConclusionMinScore: '50分', maxRounds: 7, riskScreeningRequired: '是', templateSwitchPolicy: '高风险可强制中断', multiSymptomParallel: '否', otherSymptomPolicy: '高风险优先', fallbackTemplateId: 'TMP000', promptRef: 'PMT-FLOW-003 V2.1', bodyMap: 'MAP004 胸部图', directConclusion: '限制使用', version: 'V2.1', publishStatus: '已发布', status: '已启用', lastPublishedAt: '2026-07-13 08:22', updatedAt: '2026-07-13 08:22' },
+  { id: 'TMP004', name: '儿童发热问诊模板', code: 'child_fever', templateType: '症状域模板', standardSymptom: '儿童发热', department: '儿科', system: '感染/儿科', audience: '儿童', priority: 70, slotCount: 13, coreSlotCount: 7, autoConclusionScore: '80分', evaluationOutputThreshold: '80分', outputStrategy: '允许生成问诊结论', directConclusionMinScore: '30分', maxRounds: 10, riskScreeningRequired: '是', templateSwitchPolicy: '用户确认后允许', multiSymptomParallel: '否', otherSymptomPolicy: '加入待处理主题', fallbackTemplateId: 'TMP000', promptRef: 'PMT-FLOW-004 V1.8', bodyMap: '儿童全身图', directConclusion: '支持', version: 'V1.8', publishStatus: '灰度中', status: '已启用', lastPublishedAt: '2026-07-11 15:43', updatedAt: '2026-07-11 15:43' },
+  { id: 'TMP005', name: '下肢肿胀问诊模板', code: 'leg_swelling', templateType: '症状域模板', standardSymptom: '下肢肿胀', department: '血管外科/心内科', system: '循环系统', audience: '成人', priority: 45, slotCount: 9, coreSlotCount: 5, autoConclusionScore: '75分', evaluationOutputThreshold: '75分', outputStrategy: '允许生成问诊结论', directConclusionMinScore: '30分', maxRounds: 8, riskScreeningRequired: '是', templateSwitchPolicy: '用户确认后允许', multiSymptomParallel: '否', otherSymptomPolicy: '加入待处理主题', fallbackTemplateId: 'TMP000', promptRef: 'PMT-FLOW-005 V1.2', bodyMap: '下肢示意图', directConclusion: '支持', version: 'V1.2', publishStatus: '未发布', status: '草稿', lastPublishedAt: '—', updatedAt: '2026-07-10 14:06' },
+  { id: 'TMP006', name: '呕血问诊模板', code: 'hematemesis', templateType: '高风险专用模板', standardSymptom: '呕血', department: '消化内科/急诊', system: '消化系统', audience: '成人', priority: 120, slotCount: 8, coreSlotCount: 6, autoConclusionScore: '不自动结论', evaluationOutputThreshold: '不适用', outputStrategy: '优先急诊流程，不输出普通结论', directConclusionMinScore: '不支持', maxRounds: 5, riskScreeningRequired: '是', templateSwitchPolicy: '高风险可强制中断', multiSymptomParallel: '否', otherSymptomPolicy: '高风险优先', fallbackTemplateId: 'TMP000', promptRef: 'PMT-FLOW-006 V1.4', bodyMap: '无', directConclusion: '不支持', version: 'V1.4', publishStatus: '已发布', status: '已启用', lastPublishedAt: '2026-07-13 07:55', updatedAt: '2026-07-13 07:55' }
 ]
 
 export const abdominalSlots: ConsultationSlot[] = [
@@ -53,21 +53,24 @@ export const aiClinicTemplateSlots: Record<string, ConsultationSlot[]> = {
   TMP002: eyeDrynessSlots
 }
 
-export const globalSlotLibrary: GlobalSlotDefinition[] = [
-  ['GSLOT001', '主诉', 'chief_complaint', '主诉', '文本', '文本确认、单选', '是', 6],
-  ['GSLOT002', '持续时间', 'duration', '时间', '时间/枚举', '快捷选项、自由输入', '是', 6],
-  ['GSLOT003', '疼痛部位', 'pain_location', '症状部位', '枚举', '身体部位图、文本', '是', 3],
-  ['GSLOT004', '疼痛程度', 'pain_severity', '症状程度', '量表', '评分量表、快捷选项', '是', 3],
-  ['GSLOT005', '伴随症状', 'companions', '伴随症状', '多选', '多选、自由输入', '是', 6],
-  ['GSLOT006', '危险症状', 'red_flags', '安全筛查', '多选', '风险确认、快捷选项', '是', 6],
-  ['GSLOT007', '既往疾病', 'past_history', '既往史', '多选', '多选、自由输入', '是', 5],
-  ['GSLOT008', '当前用药', 'medication', '用药', '文本/药品', '文本、药盒识别', '是', 5],
-  ['GSLOT009', '检查报告', 'reports', '资料', '文件/文本', '报告上传、快捷选项', '是', 5],
-  ['GSLOT010', '单眼或双眼', 'eye_side', '症状部位', '枚举', '快捷选项、眼部图', '是', 1]
-].map(([id, standardName, code, category, dataType, components, standardizable, referencedTemplates]) => ({
-  id: String(id), standardName: String(standardName), code: String(code), category: String(category), dataType: String(dataType), components: String(components),
-  standardizable: String(standardizable), referencedTemplates: Number(referencedTemplates), status: '已启用', updatedAt: '2026-07-13 10:20'
+export const globalSlotDefinitions: GlobalSlotDefinition[] = [
+  ['GSLOT001', '主诉', 'chief_complaint', '主诉', '文本', '文本确认、单选', '是', 7],
+  ['GSLOT002', '持续时间', 'duration', '时间', '时间/枚举', '快捷选项、自由输入', '是', 7],
+  ['GSLOT003', '疼痛部位', 'pain_location', '症状部位', '枚举', '身体部位图、文本', '是', 4],
+  ['GSLOT004', '疼痛程度', 'pain_severity', '症状程度', '量表', '评分量表、快捷选项', '是', 4],
+  ['GSLOT005', '伴随症状', 'companions', '伴随症状', '多选', '多选、自由输入', '是', 7],
+  ['GSLOT006', '危险症状', 'red_flags', '安全筛查', '多选', '风险确认、快捷选项', '是', 7],
+  ['GSLOT007', '既往疾病', 'past_history', '既往史', '多选', '多选、自由输入', '是', 6],
+  ['GSLOT008', '当前用药', 'current_medication', '用药', '文本/药品', '文本、药盒识别', '是', 6],
+  ['GSLOT009', '症状类型', 'symptom_type', '症状分类', '枚举', '快捷选项、自由输入', '是', 2],
+  ['GSLOT010', '单眼或双眼', 'eye_side', '症状部位', '枚举', '快捷选项、眼部图', '是', 1],
+  ['GSLOT011', '起病方式', 'onset_pattern', '时间', '枚举', '快捷选项、自由输入', '是', 2],
+  ['GSLOT012', '变化趋势', 'symptom_trend', '病程变化', '枚举', '快捷选项、自由输入', '是', 2]
+].map(([id, name, code, category, dataType, allowedComponents, supportsNormalization, referencedTemplates]) => ({
+  id: String(id), name: String(name), code: String(code), category: String(category), dataType: String(dataType), allowedComponents: String(allowedComponents),
+  supportsNormalization: String(supportsNormalization), referencedTemplates: Number(referencedTemplates), status: '已启用', updatedAt: '2026-07-13 10:20'
 }))
+export const globalSlotLibrary = globalSlotDefinitions
 
 const standardSlotMap: Record<string, string> = {
   chief_complaint: 'GSLOT001',
@@ -124,6 +127,49 @@ export const templateSlotConfigs: TemplateSlotConfig[] = [...abdominalSlots, ...
     riskCheck: '每轮执行'
   }
 })
+
+const tmp000SlotBindings: TemplateSlotBinding[] = [
+  ['TSB-TMP000-01', 'GSLOT001', '主要不适', 1, '文本确认', '是', '是', 15, '否定主要不适时退出问诊并重新澄清主题', '不清楚不计核心完成，继续澄清主要不适', 0.3, 0.6, '是', 2],
+  ['TSB-TMP000-02', 'GSLOT009', '不适类型', 2, '快捷选项', '是', '是', 10, '否定后回到主要不适确认', '不清楚按模糊信息计分并继续追问', 0.3, 0.6, '是', 2],
+  ['TSB-TMP000-03', 'GSLOT003', '身体部位', 3, '身体部位图', '条件必填', '条件核心', 10, '全身症状可标记不适用，其余场景需重新确认部位', '不清楚按模糊信息计分；全身症状允许不适用', 0.3, 0.6, '是', 2],
+  ['TSB-TMP000-04', 'GSLOT002', '持续时间', 4, '快捷选项', '是', '是', 10, '否定无意义时继续询问起病时间', '不清楚按模糊信息计分并继续追问', 0.3, 0.6, '是', 2],
+  ['TSB-TMP000-05', 'GSLOT004', '严重程度', 5, '评分量表', '是', '是', 10, '无法给出程度时改用轻中重快捷选项', '不清楚按模糊信息计分并继续追问', 0.3, 0.6, '是', 2],
+  ['TSB-TMP000-06', 'GSLOT011', '起病方式', 6, '快捷选项', '是', '是', 10, '否定当前选项后继续澄清突然/逐渐起病', '不清楚按模糊信息计分并继续追问', 0.3, 0.6, '是', 2],
+  ['TSB-TMP000-07', 'GSLOT012', '变化趋势', 7, '快捷选项', '否', '否', 10, '否定某一趋势后保留其他趋势选项', '不清楚可完成但按模糊信息计分', 0.3, 0.3, '否', 1],
+  ['TSB-TMP000-08', 'GSLOT005', '伴随症状', 8, '多选', '否', '否', 10, '明确否定视为完成，记录有效阴性信息', '不清楚可完成但按模糊信息计分', 0.3, 0.3, '否', 1],
+  ['TSB-TMP000-09', 'GSLOT006', '危险症状筛查', 9, '风险确认', '是', '是', 10, '明确否定视为有效阴性信息，槽位完成', '不清楚不满足风险筛查完成条件，继续追问', 0.3, 0.6, '是', 2],
+  ['TSB-TMP000-10', 'GSLOT007', '既往疾病', 10, '多选', '否', '否', 3, '明确否定视为完成，记录有效阴性信息', '不清楚可完成但按模糊信息计分', 0.3, 0.3, '否', 1],
+  ['TSB-TMP000-11', 'GSLOT008', '当前用药', 11, '文本/药盒识别', '否', '否', 2, '明确否定视为完成，记录有效阴性信息', '不清楚可完成但按模糊信息计分', 0.3, 0.3, '否', 1]
+].map(([id, globalSlotId, displayName, order, component, required, core, weight, negativeAnswerRule, unclearRule, unclearCoefficient, minimumCompletionCoefficient, needConfirmation, maxAskCount]) => ({
+  id: String(id), templateId: 'TMP000', templateVersion: 'V1.0', globalSlotId: String(globalSlotId), displayName: String(displayName), order: Number(order), component: String(component),
+  required: String(required), core: String(core), weight: Number(weight), negativeAnswerRule: String(negativeAnswerRule), unclearRule: String(unclearRule),
+  unclearCoefficient: Number(unclearCoefficient), minimumCompletionCoefficient: Number(minimumCompletionCoefficient), needConfirmation: String(needConfirmation), maxAskCount: Number(maxAskCount), enabled: '已启用'
+}))
+
+export const templateSlotBindings: TemplateSlotBinding[] = [
+  ...tmp000SlotBindings,
+  ...templateSlotConfigs.map(slot => ({
+    id: slot.id,
+    templateId: slot.templateId,
+    templateVersion: slot.templateVersion,
+    globalSlotId: slot.standardSlotId,
+    displayName: slot.name,
+    order: slot.order,
+    component: slot.component,
+    required: slot.required ? '是' : '否',
+    core: slot.core ? '是' : '否',
+    weight: slot.weight,
+    negativeAnswerRule: slot.negativeCompletionRule,
+    unclearRule: `${slot.unknownAllowed === '是' ? '允许不清楚' : '不允许不清楚'}；信息系数${slot.unknownCoefficient}`,
+    unclearCoefficient: slot.unknownCoefficient,
+    minimumCompletionCoefficient: slot.effectiveMinCoefficient,
+    needConfirmation: slot.needConfirm ? '是' : '否',
+    maxAskCount: slot.maxAsk,
+    enabled: slot.status
+  }))
+]
+
+export const templates = aiClinicTemplates
 
 function defaultQuestion(name: string) {
   const map: Record<string, string> = {
@@ -320,13 +366,13 @@ export const aiClinicPageConfigs: Record<string, PageConfig> = {
     { key: 'status', label: '模板状态', options: ['全部', '草稿', '已启用', '已停用'] },
     { key: 'publishStatus', label: '发布状态', options: ['全部', '未发布', '灰度中', '已发布', '已回滚'] }
   ], '新增问诊模板', ['查看', '创建新版本', '复制', '停用', '查看使用记录']),
-  'ai-clinic/slots': makeConfig('ai-clinic/slots', 'AI诊室 · 槽位配置', '配置腹痛模板槽位权重、展示组件、完成规则和确认策略', [
-    col('order', '顺序'), col('name', '槽位名称'), col('category', '槽位分类'), col('component', '展示组件'), col('requiredText', '必填', status), col('coreText', '核心槽位', status), col('weight', '权重'), col('noCountsText', '“没有”计分', status), col('allowUnknownText', '允许不清楚', status), col('needConfirmText', '需确认', status), col('status', '状态', status)
-  ], abdominalSlots.map(s => ({ ...s, requiredText: s.required ? '是' : '否', coreText: s.core ? '是' : '否', noCountsText: s.noCounts ? '是' : '否', allowUnknownText: s.allowUnknown ? '是' : '否', needConfirmText: s.needConfirm ? '是' : '否' })), [
+  'ai-clinic/slots': makeConfig('ai-clinic/slots', 'AI诊室 · 全局槽位库', '定义可被多个问诊模板复用的标准槽位，具体权重、问法和跳转规则由各模板单独配置。', [
+    col('id', '槽位编号'), col('name', '标准名称'), col('code', '槽位编码'), col('category', '业务分类'), col('dataType', '数据类型'), col('allowedComponents', '可用展示组件'), col('supportsNormalization', '是否支持标准化', status), col('referencedTemplates', '被引用模板数量'), col('status', '状态', status), col('updatedAt', '更新时间')
+  ], globalSlotDefinitions, [
     { key: 'category', label: '业务分类', options: ['全部', '主诉', '症状特征', '时间', '诱因', '缓解', '伴随症状', '安全筛查', '既往史', '用药', '资料'] },
-    { key: 'component', label: '展示组件', options: ['全部', '文本确认', '身体部位图', '快捷选项', '量表', '多选', '风险确认', '报告上传'] },
+    { key: 'allowedComponents', label: '展示组件', options: ['全部', '文本确认', '身体部位图', '快捷选项', '评分量表', '多选', '风险确认', '报告上传'] },
     { key: 'status', label: '状态', options: ['全部', '已启用', '已停用'] }
-  ], '新增槽位', ['查看详情', '编辑', '停用']),
+  ], '新增全局槽位', ['查看详情', '编辑', '停用']),
   'ai-clinic/risk-rules': makeConfig('ai-clinic/risk-rules', 'AI诊室 · 高风险规则', '配置全局安全规则，命中后优先于模板匹配、槽位追问和直接结论', [
     col('id', '规则编号'), col('name', '规则名称'), col('trigger', '触发条件', false, 220), col('riskLevel', '风险等级', status), col('action', '系统动作', false, 220), col('interrupt', '强制中断', status), col('entry', '推荐入口'), col('priority', '优先级'), col('status', '状态', status)
   ], [
@@ -448,7 +494,7 @@ export const aiClinicMenuItems = [
   ['ai-clinic/dashboard', '诊室工作台'],
   ['ai-clinic/sessions', '问诊会话'],
   ['ai-clinic/templates', '问诊模板'],
-  ['ai-clinic/slots', '槽位配置'],
+  ['ai-clinic/slots', '全局槽位库'],
   ['ai-clinic/flows', '问诊流程'],
   ['ai-clinic/template-rules', '模板匹配规则'],
   ['ai-clinic/body-maps', '身体部位图'],

@@ -31,15 +31,35 @@ export interface ConsultationSlot {
 
 export interface GlobalSlotDefinition extends RowData {
   id: string
-  standardName: string
   code: string
+  name: string
   category: string
   dataType: string
-  components: string
-  standardizable: string
+  allowedComponents: string
+  supportsNormalization: string
   referencedTemplates: number
   status: string
   updatedAt: string
+}
+
+export interface TemplateSlotBinding extends RowData {
+  id: string
+  templateId: string
+  templateVersion: string
+  globalSlotId: string
+  displayName: string
+  order: number
+  component: string
+  required: string
+  core: string
+  weight: number
+  negativeAnswerRule: string
+  unclearRule: string
+  unclearCoefficient: number
+  minimumCompletionCoefficient: number
+  needConfirmation: string
+  maxAskCount: number
+  enabled: string
 }
 
 export interface TemplateSlotConfig extends ConsultationSlot {
@@ -91,6 +111,8 @@ export interface ConsultationTemplate extends RowData {
   slotCount: number
   coreSlotCount: number
   autoConclusionScore: string
+  evaluationOutputThreshold: string
+  outputStrategy: string
   directConclusionMinScore: string
   maxRounds: number
   riskScreeningRequired: string
