@@ -10,6 +10,7 @@ import { medicalRecords } from './medicalRecordData'
 import { checkReports } from './checkReportData'
 import { diagnosisManagementRecords, symptomManagementRecords } from './clinicalRecordData'
 import { doctorAgents } from './doctorAgentData'
+import { aiClinicMenuItems, aiClinicPageConfigs } from './aiClinicAdminData'
 
 const people = ['刘志辉', '陈雨桐', '周铭轩', '林婉清', '吴嘉诚', '赵欣怡', '孙建国', '高晓雯', '叶子航', '许安然']
 const hospitals = ['华中科技大学协和深圳医院', '北京大学深圳医院', '南方医科大学深圳医院', '深圳市第三人民医院']
@@ -130,7 +131,7 @@ const definitions: [string,string,string,string[],Column[],(i:number)=>RowData,s
   ['settings','系统设置','系统管理',['对话入档前确认','药箱AI读取','引用原文可点击','家人档案主体强确认'],[col('type','配置类型'),col('module','所属模块'),col('gray','灰度范围'),col('operator','操作人')],i=>({type:'功能开关',module:['入档治理','用户药箱','报告解读','家庭档案'][i%4],gray:['20%用户','全量关闭','规划中','50%用户'][i%4],operator:'医学运营管理员',status:['灰度开启','关闭','规划中','灰度开启'][i%4]})]
 ]
 
-export const pageConfigs: Record<string, PageConfig> = { ...specialConfigs }
+export const pageConfigs: Record<string, PageConfig> = { ...specialConfigs, ...aiClinicPageConfigs }
 definitions.forEach(([key,title,group,names,cols,extra,actions]) => {
   pageConfigs[key] = makePage(key,title,group,names,cols,extra,actions)
 })
@@ -266,6 +267,7 @@ pageConfigs.rules.actions = ['查看详情','编辑','命中会话','启用','�
 
 export const menuGroups: { name: string; items: readonly (readonly [string, string])[] }[] = [
   { name: '总览', items: [['dashboard','工作台']] },
+  { name: 'AI诊室', items: aiClinicMenuItems },
   { name: '用户与档案', items: [['users','用户管理'],['family','家庭成员管理'],['health','健康档案管理']] },
   { name: '医疗数据', items: [['records','病历管理'],['reports','检查报告管理'],['diagnoses','诊断记录管理'],['symptoms','症状记录管理']] },
   { name: 'AI 服务', items: [['consults','AI问诊管理'],['interpretation','报告解读管理'],['triage','智能导诊管理'],['agents','医生智能体管理']] },

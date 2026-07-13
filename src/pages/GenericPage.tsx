@@ -25,6 +25,18 @@ export default function GenericPage({config,onNavigate,onToast}:{config:PageConf
     return matches&&dateMatch&&extras&&(filter==='全部'||String(r[filterCfg.key])===filter)&&(status==='全部'||String(r.status)===status)
   }),[rows,keyword,filter,status,date,endDate,extraValues,filterCfg.key,config.filters])
   const action=(a:string,row:RowData)=>{
+    if(config.key.startsWith('ai-clinic/')){
+      if(config.key==='ai-clinic/sessions'&&a==='查看'){onNavigate(`ai-clinic/sessions/${row.id}`);return}
+      if(config.key==='ai-clinic/templates'&&a==='查看'){onNavigate(`ai-clinic/templates/${row.id}`);return}
+      if(a==='规则测试'||a==='执行'||a==='批量执行'){onToast(`${a}完成：高风险规则优先于模板匹配、槽位追问和直接结论`);return}
+      if(a.includes('停用')){setDeleteRow({...row,name:String(row.name??row.id),__confirmAction:'停用'});return}
+      if(a.includes('删除')){
+        if(!['草稿','待发布'].includes(String(row.status))){onToast('已发布或已被使用的配置不能直接删除，请先停用');return}
+        setDeleteRow(row);return
+      }
+      if(/查看|详情|预览|差异/.test(a)){setDetailTab(undefined);setDetail(row);return}
+      if(a.includes('编辑')){setEditing(row);return}
+    }
     if(config.key==='camera'){
       if(a==='纠错记录'){onNavigate('corrections');return}
       const tabMap:Record<string,string>={
@@ -115,7 +127,11 @@ export default function GenericPage({config,onNavigate,onToast}:{config:PageConf
       selected={selected} onSelected={setSelected} onAction={action}/>
     <BusinessDetailDrawer row={detail} pageKey={config.key} initialTab={detailTab} onClose={()=>setDetail(null)} onNavigate={k=>{setDetail(null);onNavigate(k)}} onToast={onToast}/>
     <EditModal open={editing!==undefined} title={editing?`编辑${config.title.replace('管理','')}`:(config.primaryAction??`新增${config.title.replace('管理','')}`)} fields={editing?(config.editFields??config.fields):(config.createFields??config.fields)} initial={editing} onClose={()=>setEditing(undefined)} onSave={save}/>
-    <ConfirmDialog open={!!deleteRow} name={String(deleteRow?.name??'')} onClose={()=>setDeleteRow(null)} onConfirm={()=>{setRows(x=>x.filter(r=>r.id!==deleteRow?.id));setDeleteRow(null);onToast('记录已删除')}}/>
+    <ConfirmDialog open={!!deleteRow} name={String(deleteRow?.name??'')} onClose={()=>setDeleteRow(null)} onConfirm={()=>{
+      if(deleteRow?.__confirmAction==='停用'){setRows(xs=>xs.map(r=>r.id===deleteRow.id?{...r,status:'已停用',updatedAt:'2026-07-13 现在'}:r));onToast('配置已停用，历史会话继续保留原版本记录')}
+      else {setRows(x=>x.filter(r=>r.id!==deleteRow?.id));onToast('记录已删除')}
+      setDeleteRow(null)
+    }}/>
     <ExportComplianceDialog open={exportOpen} count={shown.length} onClose={()=>setExportOpen(false)} onConfirm={()=>{setExportOpen(false);onToast(`已导出 ${shown.length} 条脱敏记录，审计日志已生成`)}}/>
   </>
 }

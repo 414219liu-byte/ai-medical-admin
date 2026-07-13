@@ -4,6 +4,7 @@ import { menuGroups } from '../mock/mockData'
 const icons:Record<string,React.ReactNode>={
   dashboard:<LayoutDashboard/>,users:<Users/>,family:<Users/>,health:<HeartPulse/>,records:<FileText/>,reports:<FileText/>,diagnoses:<Activity/>,symptoms:<Activity/>,
   consults:<Bot/>,camera:<Camera/>,interpretation:<Bot/>,triage:<Workflow/>,agents:<Bot/>,hospitals:<Hospital/>,departments:<Hospital/>,doctors:<Users/>,slots:<Hospital/>,
+  'ai-clinic/dashboard':<Bot/>,'ai-clinic/sessions':<Activity/>,'ai-clinic/templates':<FileText/>,'ai-clinic/slots':<Workflow/>,'ai-clinic/flows':<Workflow/>,'ai-clinic/template-rules':<Workflow/>,'ai-clinic/body-maps':<Activity/>,'ai-clinic/quick-options':<CircleHelp/>,'ai-clinic/risk-rules':<ShieldCheck/>,'ai-clinic/route-rules':<Workflow/>,'ai-clinic/multi-symptom-rules':<Workflow/>,'ai-clinic/direct-conclusion-rules':<ShieldCheck/>,'ai-clinic/conclusion-templates':<FileText/>,'ai-clinic/report-rules':<FileText/>,'ai-clinic/prompts':<Bot/>,'ai-clinic/knowledge':<Database/>,'ai-clinic/quality-tests':<ShieldCheck/>,'ai-clinic/releases':<Settings/>,'ai-clinic/logs':<FileText/>,
   'doctor-rules':<Workflow/>,'medical-kb':<Database/>,'drug-kb':<Database/>,'medicine-box':<Database/>,'med-plans':<Activity/>,rules:<Workflow/>,models:<Bot/>,prompts:<FileText/>,tools:<Settings/>,
   archive:<Database/>,corrections:<ShieldCheck/>,requests:<ShieldCheck/>,feedback:<CircleHelp/>,reviews:<ShieldCheck/>,content:<FileText/>,messages:<Bell/>,permissions:<ShieldCheck/>,privacy:<ShieldCheck/>,settings:<Settings/>
 }
