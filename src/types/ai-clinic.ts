@@ -2,14 +2,14 @@ import type { RowData } from '../types'
 
 export type SlotInfoState =
   | '用户明确输入'
-  | '用户点击快捷选项'
-  | '用户点击身体部位图'
-  | '报告识别后由用户确认'
-  | '报告识别但未确认'
-  | 'AI根据上下文推断'
-  | '用户表达模糊'
-  | '信息冲突'
-  | '未回答'
+  | '快捷选项'
+  | '身体部位图'
+  | '报告识别且用户确认'
+  | '报告识别未确认'
+  | 'AI上下文推断'
+  | '模糊信息'
+  | '冲突'
+  | '未填写'
   | '不适用'
 
 export interface ConsultationSlot {
@@ -34,7 +34,7 @@ export interface SlotValue {
   sessionId: string
   value: string
   raw: string
-  source: SlotInfoState
+  source: string
   status: SlotInfoState
   confidence: number
   updatedAt: string
@@ -67,9 +67,14 @@ export interface AiClinicSession extends RowData {
   gender: string
   chiefComplaint: string
   normalizedSymptoms: string
+  initialTemplateId: string
+  currentTemplateId: string
+  finalTemplateId: string
   templateId: string
   templateName: string
   templateVersion: string
+  templateSnapshotId: string
+  templateMatchConfidence: number
   modelVersion: string
   riskLevel: string
   status: string
@@ -90,14 +95,21 @@ export interface ProgressResult {
   total: number
   percent: number
   cappedPercent: number
+  cap: number
   capReasons: string[]
+  highRiskInterrupted: boolean
   rows: Array<{
+    slotId: string
     slotName: string
     weight: number
     status: SlotInfoState
+    source: string
+    raw: string
+    confidence: string
     coefficient: number
     score: number
     core: boolean
     value: string
+    updatedAt: string
   }>
 }

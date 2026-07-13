@@ -27,6 +27,7 @@ export default function GenericPage({config,onNavigate,onToast}:{config:PageConf
   const action=(a:string,row:RowData)=>{
     if(config.key.startsWith('ai-clinic/')){
       if(config.key==='ai-clinic/sessions'&&a==='查看'){onNavigate(`ai-clinic/sessions/${row.id}`);return}
+      if(config.key==='ai-clinic/sessions'&&(a==='发起质检'||a==='标记异常'||a==='加入测试用例')){onToast(`${row.id} 已${a}，可在质检测试中查看`);return}
       if(config.key==='ai-clinic/templates'&&a==='查看'){onNavigate(`ai-clinic/templates/${row.id}`);return}
       if(a==='规则测试'||a==='执行'||a==='批量执行'){onToast(`${a}完成：高风险规则优先于模板匹配、槽位追问和直接结论`);return}
       if(a.includes('停用')){setDeleteRow({...row,name:String(row.name??row.id),__confirmAction:'停用'});return}
@@ -123,7 +124,7 @@ export default function GenericPage({config,onNavigate,onToast}:{config:PageConf
       extraFilters={(config.filters??[]).slice(1)} extraValues={extraValues} onExtra={(key,value)=>setExtraValues(v=>({...v,[key]:value}))}
       onReset={()=>{setKeyword('');setFilter('全部');setStatus('全部');setDate('');setEndDate('');setExtraValues({})}} onAdd={()=>setEditing(null)} addText={config.primaryAction??'新增记录'} onExport={()=>config.key==='family'?setExportOpen(true):onToast(`已导出 ${shown.length} 条数据`)}/>
     <DataTable columns={config.columns} rows={shown} actions={config.actions??['查看','编辑','删除']}
-      actionsForRow={config.key==='camera'?(row=>row.traceless==='是'?['查看审计','查看脱敏结果','查看分析摘要']:(config.actions??[])):undefined}
+      actionsForRow={config.key==='camera'?(row=>row.traceless==='是'?['查看审计','查看脱敏结果','查看分析摘要']:(config.actions??[])):config.key==='ai-clinic/sessions'?(row=>row.isTestSession==='是'?['查看','发起质检','标记异常','加入测试用例','删除']:(config.actions??[])):undefined}
       selected={selected} onSelected={setSelected} onAction={action}/>
     <BusinessDetailDrawer row={detail} pageKey={config.key} initialTab={detailTab} onClose={()=>setDetail(null)} onNavigate={k=>{setDetail(null);onNavigate(k)}} onToast={onToast}/>
     <EditModal open={editing!==undefined} title={editing?`编辑${config.title.replace('管理','')}`:(config.primaryAction??`新增${config.title.replace('管理','')}`)} fields={editing?(config.editFields??config.fields):(config.createFields??config.fields)} initial={editing} onClose={()=>setEditing(undefined)} onSave={save}/>

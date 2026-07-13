@@ -14,7 +14,7 @@ export default function DataTable({columns,rows,actions,actionsForRow,selected,o
       <tbody>{rows.map((row,i)=><tr key={String(row.id)}>
         <td className="check"><input type="checkbox" checked={selected.includes(String(row.id))} onChange={()=>onSelected(selected.includes(String(row.id))?selected.filter(x=>x!==String(row.id)):[...selected,String(row.id)])}/></td>
         <td className="index">{i+1}</td>
-        {columns.map(c=><td key={c.key} title={String(row[c.key]??'—')}>{c.status?<StatusTag value={row[c.key]??'—'}/>:String(row[c.key]??'—')}</td>)}
+        {columns.map(c=><td key={c.key} className={c.key==='templateDisplay'?'template-cell':''} title={String(row[c.key]??'—')}>{c.status?<StatusTag value={row[c.key]??'—'}/>:c.key==='templateDisplay'?String(row[c.key]??'—').split('\n').map((x,i)=><span key={i}>{x}</span>):String(row[c.key]??'—')}</td>)}
         <td className="operations"><div>{(actionsForRow?.(row)??actions).map((a,j)=><button key={a} className={j===0?'main-op':''} onClick={()=>onAction(a,row)}>{a}</button>)}</div></td>
       </tr>)}</tbody>
     </table></div>

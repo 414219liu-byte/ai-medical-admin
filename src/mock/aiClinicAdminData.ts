@@ -31,6 +31,27 @@ export const abdominalSlots: ConsultationSlot[] = [
   required: Boolean(required), core: Boolean(core), weight: Number(weight), noCounts: Boolean(noCounts), allowUnknown: Boolean(allowUnknown), needConfirm: Boolean(needConfirm), status: '已启用'
 }))
 
+export const eyeDrynessSlots: ConsultationSlot[] = [
+  ['EYE-01', 1, '主诉确认', 'chief_complaint', '主诉', '文本确认', true, true, 15, true, false, true],
+  ['EYE-02', 2, '持续时间', 'duration', '时间', '快捷选项', true, true, 10, false, true, true],
+  ['EYE-03', 3, '单眼或双眼', 'eye_side', '症状部位', '快捷选项', true, true, 10, false, true, true],
+  ['EYE-04', 4, '伴随症状', 'companions', '伴随症状', '多选', true, true, 15, true, true, true],
+  ['EYE-05', 5, '危险症状筛查', 'red_flags', '安全筛查', '风险确认', true, true, 15, true, false, true],
+  ['EYE-06', 6, '用眼及加重因素', 'eye_use_trigger', '诱因', '多选', false, false, 10, true, true, false],
+  ['EYE-07', 7, '隐形眼镜及眼部操作', 'contact_lens_operation', '眼部操作', '快捷选项', false, false, 5, true, true, true],
+  ['EYE-08', 8, '检查报告', 'reports', '资料', '报告上传', false, false, 5, true, true, true],
+  ['EYE-09', 9, '既往疾病', 'past_history', '既往史', '多选', false, false, 5, true, true, true],
+  ['EYE-10', 10, '当前用药', 'medication', '用药', '文本/药盒识别', false, false, 10, true, true, true]
+].map(([id, order, name, code, category, component, required, core, weight, noCounts, allowUnknown, needConfirm]) => ({
+  id: String(id), templateId: 'TMP002', order: Number(order), name: String(name), code: String(code), category: String(category), component: String(component),
+  required: Boolean(required), core: Boolean(core), weight: Number(weight), noCounts: Boolean(noCounts), allowUnknown: Boolean(allowUnknown), needConfirm: Boolean(needConfirm), status: '已启用'
+}))
+
+export const aiClinicTemplateSlots: Record<string, ConsultationSlot[]> = {
+  TMP001: abdominalSlots,
+  TMP002: eyeDrynessSlots
+}
+
 const templateById = Object.fromEntries(aiClinicTemplates.map(t => [t.id, t]))
 
 export const aiClinicSessions: AiClinicSession[] = [
@@ -50,12 +71,22 @@ export const aiClinicSessions: AiClinicSession[] = [
   return {
     id: String(id), userId: String(userId), userName: String(userName), patientId: String(patientId), patientName: String(patientName), relation: String(relation),
     age: Number(age), gender: String(gender), chiefComplaint: String(chiefComplaint), normalizedSymptoms: String(normalizedSymptoms), templateId: String(templateId),
-    templateName: template?.name ?? '未匹配问诊模板', templateVersion: template?.version ?? '—', modelVersion: String(riskLevel).includes('120') ? 'medical-safety-v3.0' : 'medical-language-b-v2.4',
-    progress: '0%', riskLevel: String(riskLevel), status: String(status), conclusionType: String(conclusionType), rounds: Number(rounds), multisymptom: String(multisymptom),
+    initialTemplateId: String(templateId), currentTemplateId: String(templateId), finalTemplateId: String(templateId), templateName: template?.name ?? '未匹配问诊模板', templateVersion: template?.version ?? '—',
+    templateSnapshotId: template ? `${template.id}-${template.version}` : '—', templateMatchConfidence: String(id) === 'AIC202607130001' ? 0.94 : template ? 0.86 : 0.12,
+    modelVersion: String(riskLevel).includes('120') ? 'medical-safety-v3.0' : 'medical-language-b-v2.4',
+    progress: '0%', riskLevel: String(riskLevel) === '非医疗' ? '—' : String(riskLevel), status: String(status), conclusionType: String(conclusionType), rounds: Number(rounds), multisymptom: String(multisymptom),
     hasUpload: String(hasUpload), startAt: String(startAt), endAt: String(endAt), createdAt: String(startAt), updatedAt: String(endAt), department: String(department),
     conclusion: String(conclusion), clickedDirectConclusion: conclusionType === '直接结论' ? '是' : '否', endReason: String(status), name: `${patientName} ${chiefComplaint}`
   }
 })
+const multiSymptomSession = aiClinicSessions.find(session => session.id === 'AIC202607130006')
+if (multiSymptomSession) {
+  multiSymptomSession.initialTemplateId = 'TMP002'
+  multiSymptomSession.currentTemplateId = 'TMP003'
+  multiSymptomSession.finalTemplateId = 'TMP003'
+  multiSymptomSession.templateSnapshotId = 'TMP003-V2.1'
+  multiSymptomSession.templateMatchConfidence = 0.88
+}
 
 const abdominalSlotValues: SlotValue[] = [
   ['SLOT-TMP001-01', 'AIC202607130004', '右下腹疼痛', '右下腹疼痛3天', '用户明确输入', 0.98, '2026-07-13 10:02'],
@@ -70,26 +101,59 @@ const abdominalSlotValues: SlotValue[] = [
   ['SLOT-TMP001-10', 'AIC202607130004', '无明显既往病', '以前没有什么病', '用户明确输入', 1, '2026-07-13 10:10'],
   ['SLOT-TMP001-11', 'AIC202607130004', '未用药', '还没吃药', '用户明确输入', 1, '2026-07-13 10:10'],
   ['SLOT-TMP001-12', 'AIC202607130004', '无', '没有检查报告', '用户明确输入', 1, '2026-07-13 10:10']
-].map(([slotId, sessionId, value, raw, status, confidence, updatedAt]) => ({ slotId: String(slotId), sessionId: String(sessionId), value: String(value), raw: String(raw), source: status as SlotValue['source'], status: status as SlotValue['status'], confidence: Number(confidence), updatedAt: String(updatedAt) }))
+].map(([slotId, sessionId, value, raw, status, confidence, updatedAt]) => ({ slotId: String(slotId), sessionId: String(sessionId), value: String(value), raw: String(raw), source: sourceFromStatus(String(status)), status: normalizeSlotStatus(String(status)), confidence: Number(confidence), updatedAt: String(updatedAt) }))
 
 export const aiClinicSlotValues: SlotValue[] = [
   ...abdominalSlotValues,
-  { slotId: 'EYE-01', sessionId: 'AIC202607130001', value: '双眼干涩', raw: '我眼睛很干', source: '用户明确输入', status: '用户明确输入', confidence: 0.98, updatedAt: '2026-07-13 08:42' },
-  { slotId: 'EYE-02', sessionId: 'AIC202607130001', value: '2年，加重1周', raw: '两年了，最近一周重一点', source: '用户明确输入', status: '用户明确输入', confidence: 0.96, updatedAt: '2026-07-13 08:44' },
-  { slotId: 'EYE-03', sessionId: 'AIC202607130001', value: '双眼均有', raw: '快捷选项：双眼', source: '用户点击快捷选项', status: '用户点击快捷选项', confidence: 1, updatedAt: '2026-07-13 08:45' }
+  { slotId: 'EYE-01', sessionId: 'AIC202607130001', value: '双眼干涩、畏光', raw: '我眼睛很干，还有点怕光', source: '用户文本', status: '用户明确输入', confidence: 0.98, updatedAt: '2026-07-13 08:42' },
+  { slotId: 'EYE-02', sessionId: 'AIC202607130001', value: '2年，加重1周', raw: '两年了，最近一周重一点', source: '用户文本', status: '用户明确输入', confidence: 0.96, updatedAt: '2026-07-13 08:43' },
+  { slotId: 'EYE-03', sessionId: 'AIC202607130001', value: '双眼均有', raw: '快捷选项：双眼都有', source: '快捷选项', status: '快捷选项', confidence: 1, updatedAt: '2026-07-13 08:44' },
+  { slotId: 'EYE-04', sessionId: 'AIC202607130001', value: '畏光、异物感、久看屏幕后加重', raw: '会怕光，像有东西磨，盯屏幕久了更明显', source: '用户文本', status: '用户明确输入', confidence: 0.97, updatedAt: '2026-07-13 08:45' },
+  { slotId: 'EYE-05', sessionId: 'AIC202607130001', value: '无眼痛、无视力骤降、无明显分泌物', raw: '不疼，视力没有突然下降，也没有很多分泌物', source: '快捷选项', status: '快捷选项', confidence: 1, updatedAt: '2026-07-13 08:46' },
+  { slotId: 'EYE-06', sessionId: 'AIC202607130001', value: '长时间看电脑后加重，休息后缓解', raw: '上班一直看电脑，休息会好点', source: '用户文本', status: '用户明确输入', confidence: 0.94, updatedAt: '2026-07-13 08:47' },
+  { slotId: 'EYE-07', sessionId: 'AIC202607130001', value: '不戴隐形眼镜，近期无眼部操作', raw: '不戴隐形，也没做过眼部操作', source: '快捷选项', status: '快捷选项', confidence: 1, updatedAt: '2026-07-13 08:48' },
+  { slotId: 'EYE-08', sessionId: 'AIC202607130001', value: '无检查报告', raw: '没有检查报告', source: '用户文本', status: '用户明确输入', confidence: 1, updatedAt: '2026-07-13 08:48' }
 ]
 
 export const sessionProgress = Object.fromEntries(aiClinicSessions.map(session => {
-  if (session.templateId === 'TMP001') return [session.id, calculateConsultationProgress(abdominalSlots, aiClinicSlotValues.filter(v => v.sessionId === session.id), { patientConfirmed: true, chiefComplaintIdentified: true, riskScreeningDone: true })]
-  if (session.id === 'AIC202607130001') return [session.id, { score: 85, total: 100, percent: 85, cappedPercent: 85, capReasons: [], rows: [] }]
-  if (session.id === 'AIC202607130002') return [session.id, { score: 80, total: 100, percent: 80, cappedPercent: 80, capReasons: [], rows: [] }]
-  if (session.id === 'AIC202607130003') return [session.id, { score: 35, total: 100, percent: 35, cappedPercent: 35, capReasons: ['命中120规则后停止普通槽位追问'], rows: [] }]
-  if (session.id === 'AIC202607130006') return [session.id, { score: 30, total: 100, percent: 30, cappedPercent: 30, capReasons: ['多症状中高风险症状优先'], rows: [] }]
-  return [session.id, { score: 0, total: 100, percent: 0, cappedPercent: 0, capReasons: ['未进入结构化问诊'], rows: [] }]
+  const slots = aiClinicTemplateSlots[session.currentTemplateId] ?? []
+  if (slots.length) return [session.id, calculateConsultationProgress(aiClinicSlotValues.filter(v => v.sessionId === session.id), slots, { patientConfirmed: true, chiefComplaintIdentified: true, riskScreeningDone: true, highRiskTriggered: ['高风险中断', '120中断', '心理危机暂停'].includes(session.status) })]
+  return [session.id, calculateConsultationProgress([], [], { chiefComplaintIdentified: false })]
 }))
 aiClinicSessions.forEach(session => { session.progress = `${sessionProgress[session.id].cappedPercent}%` })
 
+function normalizeSlotStatus(status: string): SlotValue['status'] {
+  const map: Record<string, SlotValue['status']> = {
+    用户点击快捷选项: '快捷选项',
+    用户点击身体部位图: '身体部位图',
+    报告识别后由用户确认: '报告识别且用户确认',
+    报告识别但未确认: '报告识别未确认',
+    AI根据上下文推断: 'AI上下文推断',
+    用户表达模糊: '模糊信息',
+    信息冲突: '冲突',
+    未回答: '未填写'
+  }
+  return map[status] ?? status as SlotValue['status']
+}
+
+function sourceFromStatus(status: string) {
+  if (status.includes('快捷')) return '快捷选项'
+  if (status.includes('身体部位')) return '身体部位图'
+  if (status.includes('报告')) return '报告识别'
+  if (status.includes('推断')) return 'AI上下文推断'
+  return '用户文本'
+}
+
 export const aiClinicConversation: Record<string, RowData[]> = {
+  AIC202607130001: [
+    { round: 1, time: '08:41:12', userMessage: '我眼睛很干，还有点怕光。', aiMessage: '已收到。请确认这次主要是不适集中在眼睛干涩、畏光吗？', template: 'TMP002 · V2.0', node: '确认眼干主诉', slotUpdated: 'EYE-01 主诉确认 +15分', scoreChange: '+15', progressChange: '0% → 15%', riskChecked: '未命中高风险', latency: '0.8s', type: 'AI问题' },
+    { round: 2, time: '08:42:08', userMessage: '是的，主要就是眼睛干，像有东西磨。', aiMessage: '这种情况大概持续多久了？最近是否有明显加重？', template: 'TMP002 · V2.0', node: '询问持续时间', slotUpdated: 'EYE-04 伴随症状待完善', scoreChange: '+0', progressChange: '15% → 15%', riskChecked: '未命中高风险', latency: '0.9s', type: 'AI问题' },
+    { round: 3, time: '08:43:16', userMessage: '两年了，最近一周重一点。', aiMessage: '请选择是单眼还是双眼都有不适。', template: 'TMP002 · V2.0', node: '确认单眼或双眼', slotUpdated: 'EYE-02 持续时间 +10分', scoreChange: '+10', progressChange: '15% → 25%', riskChecked: '未命中高风险', latency: '0.7s', type: 'AI问题' },
+    { round: 4, time: '08:44:03', userMessage: '双眼都有。', aiMessage: '除了干涩，是否还有畏光、异物感、分泌物增多或视力突然下降？', template: 'TMP002 · V2.0', node: '采集伴随症状', slotUpdated: 'EYE-03 单眼或双眼 +10分', scoreChange: '+10', progressChange: '25% → 35%', riskChecked: '未命中高风险', latency: '0.8s', type: 'AI问题' },
+    { round: 5, time: '08:45:21', userMessage: '畏光，有异物感，没有很多分泌物，视力也没有突然下降。', aiMessage: '为了排除急症风险，请确认是否有明显眼痛、视力骤降、眼外伤或大量脓性分泌物。', template: 'TMP002 · V2.0', node: '危险症状筛查', slotUpdated: 'EYE-04 伴随症状 +15分', scoreChange: '+15', progressChange: '35% → 50%', riskChecked: '未命中眼痛伴视力骤降规则', latency: '1.0s', type: 'AI问题' },
+    { round: 6, time: '08:46:30', userMessage: '没有眼痛，也没有外伤。上班一直看电脑，休息会好点。', aiMessage: '是否佩戴隐形眼镜，近期是否做过眼部手术或眼部操作？有没有相关检查报告？', template: 'TMP002 · V2.0', node: '用眼因素与眼部操作', slotUpdated: 'EYE-05 危险症状筛查 +15分；EYE-06 用眼及加重因素 +10分', scoreChange: '+25', progressChange: '50% → 75%', riskChecked: '风险筛查已完成', latency: '1.1s', type: 'AI问题' },
+    { round: 7, time: '08:48:20', userMessage: '不戴隐形，也没做过眼部操作，没有检查报告。', aiMessage: 'AI问诊结论：你本次提供的信息提示双眼干涩、畏光和异物感已持续较久，长时间用眼后加重，暂未出现眼痛、视力骤降等急症信号。建议眼科门诊评估干眼相关情况，并减少连续用眼、注意休息。本结论不能替代医生诊断。', template: 'TMP002 · V2.0', node: '生成问诊结论', slotUpdated: 'EYE-07 隐形眼镜及眼部操作 +5分；EYE-08 检查报告 +5分', scoreChange: '+10', progressChange: '75% → 85%', riskChecked: '允许自动结论', latency: '1.5s', type: 'AI问诊结论' }
+  ],
   AIC202607130003: [
     { role: 'user', type: '用户输入', time: '09:22:10', latency: '—', content: '胸口突然疼，还出冷汗，左胳膊也酸。', slotUpdated: '主诉确认', riskChecked: '是' },
     { role: 'system', type: '系统安全提示', time: '09:22:12', latency: '0.8s', content: '命中胸痛伴冷汗或左臂不适规则，暂停普通问诊。', slotUpdated: '否', riskChecked: '是' },
@@ -132,14 +196,14 @@ const makeConfig = (key: string, title: string, description: string, columns: Co
 
 export const aiClinicPageConfigs: Record<string, PageConfig> = {
   'ai-clinic/sessions': makeConfig('ai-clinic/sessions', 'AI诊室 · 问诊会话', '查看结构化问诊会话、风险中断、直接结论与资料上传状态', [
-    col('id', '会话编号'), col('patientName', '问诊人'), col('ageGender', '年龄/性别'), col('chiefComplaint', '主诉', false, 180), col('templateName', '当前模板'), col('progress', '完成度'), col('riskLevel', '风险等级', status), col('status', '会话状态', status), col('conclusionType', '结论类型'), col('rounds', '问诊轮次'), col('createdAt', '创建时间')
-  ], aiClinicSessions.map(s => ({ ...s, ageGender: `${s.age}岁 / ${s.gender}` })), [
-    { key: 'riskLevel', label: '风险等级', options: ['全部', '普通风险', '关注风险', '建议尽快就医', '高风险', '120急救', '心理危机', '非医疗'] },
+    col('id', '会话编号', false, 150), col('patientName', '问诊人', false, 90), col('ageGender', '年龄/性别', false, 90), col('chiefComplaint', '主诉', false, 180), col('templateDisplay', '当前模板', false, 170), col('progress', '完成度', false, 80), col('riskLevel', '风险等级', status, 100), col('status', '会话状态', status, 120), col('conclusionType', '结论类型', false, 90), col('rounds', '问诊轮次', false, 90), col('createdAt', '创建时间', false, 150)
+  ], aiClinicSessions.map(s => ({ ...s, ageGender: `${s.age}岁 / ${s.gender}`, templateDisplay: `${s.templateName}\n${s.currentTemplateId || '—'} · ${s.templateVersion}`, isTestSession: '否' })), [
+    { key: 'riskLevel', label: '风险等级', options: ['全部', '普通风险', '关注风险', '建议尽快就医', '高风险', '120急救', '心理危机', '—'] },
     { key: 'status', label: '会话状态', options: ['全部', '已生成自动结论', '高风险中断', '非医疗退出', '心理危机暂停', '图片识别失败', '问诊中', '120中断'] },
     { key: 'conclusionType', label: '结论类型', options: ['全部', '自动结论', '直接结论', '安全提示', '未生成', '无结论'] },
     { key: 'multisymptom', label: '是否多症状', options: ['全部', '是', '否'] },
     { key: 'hasUpload', label: '是否上传资料', options: ['全部', '是', '否'] }
-  ], '新建演示会话', ['查看', '编辑', '删除']),
+  ], '新增测试会话', ['查看', '发起质检', '标记异常', '加入测试用例']),
   'ai-clinic/templates': makeConfig('ai-clinic/templates', 'AI诊室 · 问诊模板', '管理症状模板、槽位数量、结论阈值、部位图和版本状态', [
     col('id', '模板编号'), col('name', '模板名称'), col('department', '所属科室'), col('audience', '适用人群'), col('slotCount', '槽位数量'), col('coreSlotCount', '核心槽位'), col('autoConclusionScore', '自动结论阈值'), col('bodyMap', '身体部位图'), col('directConclusion', '直接结论'), col('version', '当前版本'), col('status', '状态', status), col('updatedAt', '更新时间')
   ], aiClinicTemplates, [
